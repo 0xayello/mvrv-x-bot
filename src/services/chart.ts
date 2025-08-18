@@ -1,3 +1,5 @@
+// VERSION DIAGNÓSTICO - Para identificar o problema das legendas
+
 import { createCanvas, GlobalFonts } from '@napi-rs/canvas';
 import { Chart, ChartConfiguration } from 'chart.js';
 import { format } from 'date-fns';
@@ -13,166 +15,123 @@ interface ChartData {
 export class ChartService {
   async generateMVRVChart(data: ChartData): Promise<Buffer> {
     try {
-      Logger.info('Generating MVRV chart with data', {
-        numberOfPoints: data.times.length,
-        firstDate: data.times[0],
-        lastDate: data.times[data.times.length - 1],
-        dateRange: `${Math.round((new Date(data.times[data.times.length - 1]).getTime() - 
-                                 new Date(data.times[0]).getTime()) / (1000 * 60 * 60 * 24))} days`
-      });
-
-      // Ensure a known font is available in server environments (e.g., Vercel)
-      // If no valid TTF is present, we fall back to 'sans-serif'
-      let fontFamily = 'Open Sans';
+      Logger.info('=== DIAGNÓSTICO: Iniciando geração do gráfico ===');
+      
+      // DIAGNÓSTICO 1: Verificar fontes disponíveis
+      let fontFamily = 'Arial'; // Começar com fonte do sistema
       try {
+        Logger.info('DIAGNÓSTICO: Verificando fontes disponíveis');
+        
         const fontsDir = join(process.cwd(), 'assets', 'fonts');
         const dejaVuPath = join(fontsDir, 'DejaVuSans.ttf');
-        const regularPath = join(fontsDir, 'OpenSans-Regular.ttf');
-        const boldPath = join(fontsDir, 'OpenSans-Bold.ttf');
+        
+        Logger.info('DIAGNÓSTICO: Status dos arquivos de fonte', {
+          fontsDir,
+          dejaVuPath,
+          dejaVuExists: existsSync(dejaVuPath),
+          globalFontsAvailable: typeof GlobalFonts !== 'undefined'
+        });
+        
+        // Tentar registrar DejaVu Sans
         if (existsSync(dejaVuPath)) {
           try {
             GlobalFonts.registerFromPath(dejaVuPath, 'DejaVu Sans');
             fontFamily = 'DejaVu Sans';
-            Logger.info('Registered DejaVu Sans font');
-          } catch {}
-        }
-        if (!GlobalFonts.has(fontFamily)) {
-          if (existsSync(regularPath)) {
-            GlobalFonts.registerFromPath(regularPath, fontFamily);
+            Logger.info('DIAGNÓSTICO: DejaVu Sans registrada com sucesso');
+          } catch (e) {
+            Logger.warn('DIAGNÓSTICO: Falha ao registrar DejaVu Sans', { error: e });
           }
-          if (existsSync(boldPath)) {
-            GlobalFonts.registerFromPath(boldPath, fontFamily);
-          }
-          Logger.info('Font registration status', { hasFont: GlobalFonts.has(fontFamily), family: fontFamily });
         }
-        if (!GlobalFonts.has(fontFamily)) {
-          fontFamily = 'sans-serif';
-        }
-      } catch (e) {
-        Logger.warn('Failed to register fonts. Falling back to system fonts.', {
-          error: e instanceof Error ? e.message : 'Unknown error'
+        
+        Logger.info('DIAGNÓSTICO: Fontes registradas', {
+          fontFamily,
+          hasFont: GlobalFonts.has(fontFamily),
+          allFamilies: GlobalFonts.families
         });
-        fontFamily = 'sans-serif';
+        
+      } catch (e) {
+        Logger.error('DIAGNÓSTICO: Erro na configuração de fontes', { error: e });
+        fontFamily = 'Arial';
       }
 
-      // Use simpler 4:3 aspect ratio with more padding
+      // DIAGNÓSTICO 2: Canvas e configuração
       const width = 800;
       const height = 600;
       const canvas = createCanvas(width, height);
       const ctx = canvas.getContext('2d');
+      
+      Logger.info('DIAGNÓSTICO: Canvas criado', { width, height });
+
+      // DIAGNÓSTICO 3: Forçar fundo branco
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, height);
+      Logger.info('DIAGNÓSTICO: Fundo branco aplicado');
+
+      // DIAGNÓSTICO 4: Teste de texto direto no canvas
+      ctx.save();
+      ctx.fillStyle = '#ff0000'; // Vermelho para alta visibilidade
+      ctx.font = `bold 24px ${fontFamily}`;
+      ctx.textAlign = 'center';
+      ctx.fillText('TESTE DIAGNÓSTICO - ESTE TEXTO DEVE APARECER', width / 2, 50);
+      ctx.fillStyle = '#0000ff'; // Azul
+      ctx.font = `16px ${fontFamily}`;
+      ctx.fillText(`Fonte: ${fontFamily}`, width / 2, 80);
+      ctx.restore();
+      Logger.info('DIAGNÓSTICO: Texto de teste desenhado diretamente no canvas');
 
       const { Chart: ChartJS } = await import('chart.js/auto');
 
-      // Set global defaults to ensure solid black text with our registered font
+      // DIAGNÓSTICO 5: Configurar Chart.js
       ChartJS.defaults.font.family = fontFamily;
       ChartJS.defaults.color = '#000000';
-      ChartJS.defaults.devicePixelRatio = 2;
-
-      // Remove overlay labels; usaremos um cabeçalho dedicado incorporado na imagem
+      ChartJS.defaults.devicePixelRatio = 1; // Reduzir para simplificar
       
-      // Create background gradients with more vibrant colors
-      const redZoneGradient = ctx.createLinearGradient(0, 0, 0, height);
-      redZoneGradient.addColorStop(0, 'rgba(255, 0, 0, 0.2)');  // More vibrant red
-      redZoneGradient.addColorStop(1, 'rgba(255, 0, 0, 0.2)');
+      Logger.info('DIAGNÓSTICO: Chart.js configurado', {
+        defaultFont: ChartJS.defaults.font.family,
+        defaultColor: ChartJS.defaults.color,
+        devicePixelRatio: ChartJS.defaults.devicePixelRatio
+      });
 
-      const orangeZoneGradient = ctx.createLinearGradient(0, 0, 0, height);
-      orangeZoneGradient.addColorStop(0, 'rgba(255, 140, 0, 0.2)');  // More vibrant orange
-      orangeZoneGradient.addColorStop(1, 'rgba(255, 140, 0, 0.2)');
-
-      const yellowZoneGradient = ctx.createLinearGradient(0, 0, 0, height);
-      yellowZoneGradient.addColorStop(0, 'rgba(255, 255, 0, 0.25)');  // More vibrant yellow
-      yellowZoneGradient.addColorStop(1, 'rgba(255, 255, 0, 0.25)');
-
-      const greenZoneGradient = ctx.createLinearGradient(0, 0, 0, height);
-      greenZoneGradient.addColorStop(0, 'rgba(0, 255, 0, 0.2)');  // More vibrant green
-      greenZoneGradient.addColorStop(1, 'rgba(0, 255, 0, 0.2)');
-
-      // Background is now handled by the Chart.js plugin above
-
+      // Configuração simplificada para diagnóstico
       const configuration: ChartConfiguration = {
         type: 'line',
         data: {
-          labels: data.times.map(time => format(new Date(time), 'dd/MM')),
+          labels: data.times.map((time, i) => i % 30 === 0 ? format(new Date(time), 'MM/dd') : ''),
           datasets: [
-            // MVRV line
             {
               label: 'MVRV',
               data: data.values,
-              borderColor: 'rgb(0, 150, 255)',  // More vibrant blue
-              borderWidth: 2.5,  // Slightly thicker line
+              borderColor: 'rgb(0, 150, 255)',
+              borderWidth: 3,
               tension: 0.4,
               pointRadius: 0,
               fill: false,
-              yAxisID: 'y',
-              order: 10
-            },
-            // Background datasets for zones
-            {
-              label: 'Red Zone (>3.5)',
-              data: Array(data.times.length).fill(4),
-              backgroundColor: redZoneGradient,
-              borderColor: 'transparent',
-              fill: true,
-              yAxisID: 'y',
-              order: 1
-            },
-            {
-              label: 'Orange Zone (3.0-3.5)',
-              data: Array(data.times.length).fill(3.5),
-              backgroundColor: orangeZoneGradient,
-              borderColor: 'transparent',
-              fill: true,
-              yAxisID: 'y',
-              order: 2
-            },
-            {
-              label: 'Yellow Zone (1.0-3.0)',
-              data: Array(data.times.length).fill(3.0),
-              backgroundColor: yellowZoneGradient,
-              borderColor: 'transparent',
-              fill: true,
-              yAxisID: 'y',
-              order: 3
-            },
-            {
-              label: 'Green Zone (<1.0)',
-              data: Array(data.times.length).fill(1.0),
-              backgroundColor: greenZoneGradient,
-              borderColor: 'transparent',
-              fill: true,
-              yAxisID: 'y',
-              order: 4
             }
           ]
         },
         options: {
-          responsive: true,
+          responsive: false,
           maintainAspectRatio: false,
           animation: false,
-          animations: {
-            colors: false,
-            x: false,
-            y: false
-          },
           layout: {
             padding: {
-              left: 60,
-              right: 60,
-              top: 80,
-              bottom: 60
+              left: 80,
+              right: 80,
+              top: 120, // Mais espaço para o texto de teste
+              bottom: 80
             }
           },
           plugins: {
             title: {
               display: true,
-              text: 'Bitcoin MVRV - Últimos 180 dias',
+              text: 'DIAGNÓSTICO: Bitcoin MVRV - Texto do Título',
               font: {
-                size: 24,
+                size: 28,
                 family: fontFamily,
                 weight: 'bold'
               },
               color: '#000000',
-              padding: 20
+              padding: 30
             },
             legend: {
               display: false
@@ -182,12 +141,12 @@ export class ChartService {
             y: {
               beginAtZero: true,
               grid: {
-                color: 'rgba(0, 0, 0, 0.1)'
+                color: 'rgba(0, 0, 0, 0.2)'
               },
               ticks: {
                 font: {
                   family: fontFamily,
-                  size: 14,
+                  size: 16,
                   weight: 'bold'
                 },
                 color: '#000000'
@@ -200,33 +159,40 @@ export class ChartService {
               ticks: {
                 font: {
                   family: fontFamily,
-                  size: 12,
+                  size: 14,
                   weight: 'bold'
                 },
-                color: '#000000',
-                maxRotation: 0,
-                minRotation: 0,
-                autoSkip: true,
-                maxTicksLimit: 8,
-                callback: function(val, index) {
-                  const date = new Date(data.times[index]);
-                  return date.getDate() === 1 ? format(date, 'MM/dd') : '';
-                }
+                color: '#000000'
               }
             }
           }
         }
       };
 
-      // @ts-ignore - Canvas context type mismatch, but it works
+      Logger.info('DIAGNÓSTICO: Configuração do Chart.js preparada');
+
+      // @ts-ignore
       new ChartJS(ctx, configuration);
+      
+      Logger.info('DIAGNÓSTICO: Chart.js renderizado');
+
+      // DIAGNÓSTICO 6: Texto adicional após Chart.js para verificar se sobrescreve
+      ctx.save();
+      ctx.fillStyle = '#00ff00'; // Verde para contrastar
+      ctx.font = `bold 20px ${fontFamily}`;
+      ctx.textAlign = 'left';
+      ctx.fillText('APÓS CHART.JS - ESTE TEXTO TAMBÉM DEVE APARECER', 20, height - 30);
+      ctx.restore();
+      Logger.info('DIAGNÓSTICO: Texto pós-Chart.js desenhado');
 
       const buffer = canvas.toBuffer('image/png');
-      Logger.info('Chart generated successfully');
+      Logger.info('=== DIAGNÓSTICO: Gráfico concluído com sucesso ===');
+      
       return buffer;
     } catch (error) {
-      Logger.error('Failed to generate chart', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      Logger.error('DIAGNÓSTICO: Falha na geração do gráfico', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
       });
       throw error;
     }
