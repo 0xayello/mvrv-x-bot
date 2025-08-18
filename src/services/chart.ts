@@ -69,7 +69,70 @@ export class ChartService {
           c.restore();
         }
       };
-      ChartJS.register(backgroundFillPlugin);
+      
+      // Draw essential labels inside chart area so they are not cropped by platforms (e.g., Twitter)
+      const inAreaLabelsPlugin = {
+        id: 'in_area_labels',
+        afterDatasetsDraw: (chart: any) => {
+          const { ctx: c, chartArea, scales } = chart;
+          if (!chartArea) return;
+          const xScale = scales?.x;
+          const yScale = scales?.y;
+          
+          c.save();
+          c.fillStyle = '#000000';
+          c.font = `bold 16px ${fontFamily}`;
+          c.textAlign = 'center';
+          c.textBaseline = 'top';
+          
+          // Title inside area (top center) with light text shadow for readability
+          c.shadowColor = 'rgba(255,255,255,0.85)';
+          c.shadowBlur = 6;
+          c.fillText('Bitcoin MVRV - Últimos 180 dias', (chartArea.left + chartArea.right) / 2, chartArea.top + 6);
+          c.shadowBlur = 0;
+
+          // Key Y tick labels inside area on the left
+          if (yScale) {
+            c.textAlign = 'left';
+            c.textBaseline = 'middle';
+            c.font = `bold 12px ${fontFamily}`;
+            const yValues = [1.0, 2.0, 3.0, 4.0];
+            for (const v of yValues) {
+              const py = yScale.getPixelForValue(v);
+              if (py > chartArea.top && py < chartArea.bottom) {
+                // Small white backdrop for contrast
+                c.fillStyle = 'rgba(255,255,255,0.9)';
+                c.fillRect(chartArea.left + 4, py - 8, 28, 16);
+                c.fillStyle = '#000000';
+                c.fillText(v.toFixed(1), chartArea.left + 8, py);
+              }
+            }
+          }
+
+          // Minimal X labels for months inside area bottom
+          if (xScale && Array.isArray(data.times)) {
+            c.textAlign = 'center';
+            c.textBaseline = 'bottom';
+            c.font = `bold 10px ${fontFamily}`;
+            for (let i = 0; i < data.times.length; i++) {
+              const date = new Date(data.times[i]);
+              if (date.getDate() === 1) {
+                const px = xScale.getPixelForValue(i);
+                if (px > chartArea.left && px < chartArea.right) {
+                  const label = format(date, 'dd/MM');
+                  c.fillStyle = 'rgba(255,255,255,0.9)';
+                  c.fillRect(px - 16, chartArea.bottom - 14, 32, 14);
+                  c.fillStyle = '#000000';
+                  c.fillText(label, px, chartArea.bottom - 2);
+                }
+              }
+            }
+          }
+          c.restore();
+        }
+      };
+
+      ChartJS.register(backgroundFillPlugin, inAreaLabelsPlugin);
       
       // Create background gradients with more vibrant colors
       const redZoneGradient = ctx.createLinearGradient(0, 0, 0, height);
