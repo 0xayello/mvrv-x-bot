@@ -22,11 +22,20 @@ export class ChartService {
       });
 
       // Ensure a known font is available in server environments (e.g., Vercel)
+      // If no valid TTF is present, we fall back to 'sans-serif'
       let fontFamily = 'Open Sans';
       try {
         const fontsDir = join(process.cwd(), 'assets', 'fonts');
+        const dejaVuPath = join(fontsDir, 'DejaVuSans.ttf');
         const regularPath = join(fontsDir, 'OpenSans-Regular.ttf');
         const boldPath = join(fontsDir, 'OpenSans-Bold.ttf');
+        if (existsSync(dejaVuPath)) {
+          try {
+            GlobalFonts.registerFromPath(dejaVuPath, 'DejaVu Sans');
+            fontFamily = 'DejaVu Sans';
+            Logger.info('Registered DejaVu Sans font');
+          } catch {}
+        }
         if (!GlobalFonts.has(fontFamily)) {
           if (existsSync(regularPath)) {
             GlobalFonts.registerFromPath(regularPath, fontFamily);
@@ -34,7 +43,7 @@ export class ChartService {
           if (existsSync(boldPath)) {
             GlobalFonts.registerFromPath(boldPath, fontFamily);
           }
-          Logger.info('Font registration status', { hasFont: GlobalFonts.has(fontFamily) });
+          Logger.info('Font registration status', { hasFont: GlobalFonts.has(fontFamily), family: fontFamily });
         }
         if (!GlobalFonts.has(fontFamily)) {
           fontFamily = 'sans-serif';
@@ -70,10 +79,13 @@ export class ChartService {
           const yScale = scales?.y;
           
           c.save();
+          // Reset any transforms and alpha that Chart.js may have left
+          c.setTransform(1, 0, 0, 1, 0, 0);
+          c.globalAlpha = 1;
           c.fillStyle = '#000000';
           c.strokeStyle = '#ffffff';
-          c.lineWidth = 3;
-          c.font = `bold 18px ${fontFamily}`;
+          c.lineWidth = 4;
+          c.font = `bold 22px ${fontFamily}`;
           c.textAlign = 'center';
           c.textBaseline = 'top';
           
@@ -86,7 +98,7 @@ export class ChartService {
           if (yScale) {
             c.textAlign = 'left';
             c.textBaseline = 'middle';
-            c.font = `bold 14px ${fontFamily}`;
+            c.font = `bold 16px ${fontFamily}`;
             const yValues = [1.0, 2.0, 3.0, 4.0];
             for (const v of yValues) {
               const py = yScale.getPixelForValue(v);
@@ -102,7 +114,7 @@ export class ChartService {
           if (xScale && Array.isArray(data.times)) {
             c.textAlign = 'center';
             c.textBaseline = 'bottom';
-            c.font = `bold 12px ${fontFamily}`;
+            c.font = `bold 14px ${fontFamily}`;
             for (let i = 0; i < data.times.length; i++) {
               const date = new Date(data.times[i]);
               if (date.getDate() === 1) {
@@ -153,7 +165,8 @@ export class ChartService {
               tension: 0.4,
               pointRadius: 0,
               fill: false,
-              yAxisID: 'y'
+              yAxisID: 'y',
+              order: 10
             },
             // Background datasets for zones
             {
@@ -162,7 +175,8 @@ export class ChartService {
               backgroundColor: redZoneGradient,
               borderColor: 'transparent',
               fill: true,
-              yAxisID: 'y'
+              yAxisID: 'y',
+              order: 1
             },
             {
               label: 'Orange Zone (3.0-3.5)',
@@ -170,7 +184,8 @@ export class ChartService {
               backgroundColor: orangeZoneGradient,
               borderColor: 'transparent',
               fill: true,
-              yAxisID: 'y'
+              yAxisID: 'y',
+              order: 2
             },
             {
               label: 'Yellow Zone (1.0-3.0)',
@@ -178,7 +193,8 @@ export class ChartService {
               backgroundColor: yellowZoneGradient,
               borderColor: 'transparent',
               fill: true,
-              yAxisID: 'y'
+              yAxisID: 'y',
+              order: 3
             },
             {
               label: 'Green Zone (<1.0)',
@@ -186,13 +202,20 @@ export class ChartService {
               backgroundColor: greenZoneGradient,
               borderColor: 'transparent',
               fill: true,
-              yAxisID: 'y'
+              yAxisID: 'y',
+              order: 4
             }
           ]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          animation: false,
+          animations: {
+            colors: false,
+            x: false,
+            y: false
+          },
           layout: {
             padding: {
               left: 40,
