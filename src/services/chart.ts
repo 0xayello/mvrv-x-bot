@@ -57,23 +57,11 @@ export class ChartService {
       ChartJS.defaults.font.family = fontFamily;
       ChartJS.defaults.color = '#000000';
 
-      // Ensure a fully opaque background after Chart.js clears the canvas
-      const backgroundFillPlugin = {
-        id: 'background_fill',
-        beforeDraw: (chart: any) => {
-          const { ctx: c, width: w, height: h } = chart;
-          c.save();
-          c.globalCompositeOperation = 'destination-over';
-          c.fillStyle = '#ffffff';
-          c.fillRect(0, 0, w, h);
-          c.restore();
-        }
-      };
-      
-      // Draw essential labels inside chart area so they are not cropped by platforms (e.g., Twitter)
-      const inAreaLabelsPlugin = {
-        id: 'in_area_labels',
-        afterDatasetsDraw: (chart: any) => {
+      // Draw essential labels inside chart area so que não sejam cortados por plataformas
+      // Usa fill + stroke para maximizar contraste independentemente do fundo
+      const overlayLabelsPlugin = {
+        id: 'overlay_labels',
+        afterDraw: (chart: any) => {
           const { ctx: c, chartArea, scales } = chart;
           if (!chartArea) return;
           const xScale = scales?.x;
@@ -81,30 +69,29 @@ export class ChartService {
           
           c.save();
           c.fillStyle = '#000000';
-          c.font = `bold 16px ${fontFamily}`;
+          c.strokeStyle = '#ffffff';
+          c.lineWidth = 3;
+          c.font = `bold 18px ${fontFamily}`;
           c.textAlign = 'center';
           c.textBaseline = 'top';
           
-          // Title inside area (top center) with light text shadow for readability
-          c.shadowColor = 'rgba(255,255,255,0.85)';
-          c.shadowBlur = 6;
-          c.fillText('Bitcoin MVRV - Últimos 180 dias', (chartArea.left + chartArea.right) / 2, chartArea.top + 6);
-          c.shadowBlur = 0;
+          // Título dentro da área (top center)
+          const title = 'Bitcoin MVRV - Últimos 180 dias';
+          c.strokeText(title, (chartArea.left + chartArea.right) / 2, chartArea.top + 6);
+          c.fillText(title, (chartArea.left + chartArea.right) / 2, chartArea.top + 6);
 
           // Key Y tick labels inside area on the left
           if (yScale) {
             c.textAlign = 'left';
             c.textBaseline = 'middle';
-            c.font = `bold 12px ${fontFamily}`;
+            c.font = `bold 14px ${fontFamily}`;
             const yValues = [1.0, 2.0, 3.0, 4.0];
             for (const v of yValues) {
               const py = yScale.getPixelForValue(v);
               if (py > chartArea.top && py < chartArea.bottom) {
-                // Small white backdrop for contrast
-                c.fillStyle = 'rgba(255,255,255,0.9)';
-                c.fillRect(chartArea.left + 4, py - 8, 28, 16);
-                c.fillStyle = '#000000';
-                c.fillText(v.toFixed(1), chartArea.left + 8, py);
+                const text = v.toFixed(1);
+                c.strokeText(text, chartArea.left + 8, py);
+                c.fillText(text, chartArea.left + 8, py);
               }
             }
           }
@@ -113,16 +100,14 @@ export class ChartService {
           if (xScale && Array.isArray(data.times)) {
             c.textAlign = 'center';
             c.textBaseline = 'bottom';
-            c.font = `bold 10px ${fontFamily}`;
+            c.font = `bold 12px ${fontFamily}`;
             for (let i = 0; i < data.times.length; i++) {
               const date = new Date(data.times[i]);
               if (date.getDate() === 1) {
                 const px = xScale.getPixelForValue(i);
                 if (px > chartArea.left && px < chartArea.right) {
                   const label = format(date, 'dd/MM');
-                  c.fillStyle = 'rgba(255,255,255,0.9)';
-                  c.fillRect(px - 16, chartArea.bottom - 14, 32, 14);
-                  c.fillStyle = '#000000';
+                  c.strokeText(label, px, chartArea.bottom - 2);
                   c.fillText(label, px, chartArea.bottom - 2);
                 }
               }
@@ -131,8 +116,7 @@ export class ChartService {
           c.restore();
         }
       };
-
-      ChartJS.register(backgroundFillPlugin, inAreaLabelsPlugin);
+      ChartJS.register(overlayLabelsPlugin);
       
       // Create background gradients with more vibrant colors
       const redZoneGradient = ctx.createLinearGradient(0, 0, 0, height);
