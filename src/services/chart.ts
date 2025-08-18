@@ -1,7 +1,9 @@
-import { createCanvas } from '@napi-rs/canvas';
+import { createCanvas, GlobalFonts } from '@napi-rs/canvas';
 import { Chart, ChartConfiguration } from 'chart.js';
 import { format } from 'date-fns';
 import { Logger } from '../utils/logger';
+import { join } from 'path';
+import { existsSync } from 'fs';
 
 interface ChartData {
   times: string[];
@@ -19,12 +21,71 @@ export class ChartService {
                                  new Date(data.times[0]).getTime()) / (1000 * 60 * 60 * 24))} days`
       });
 
+      // Ensure a known font is available in server environments (e.g., Vercel)
+      let fontFamily = 'Open Sans';
+      try {
+        const fontsDir = join(process.cwd(), 'assets', 'fonts');
+        const regularPath = join(fontsDir, 'OpenSans-Regular.ttf');
+        const boldPath = join(fontsDir, 'OpenSans-Bold.ttf');
+        if (!GlobalFonts.has(fontFamily)) {
+          if (existsSync(regularPath)) {
+            GlobalFonts.registerFromPath(regularPath, fontFamily);
+          }
+          if (existsSync(boldPath)) {
+            GlobalFonts.registerFromPath(boldPath, fontFamily);
+          }
+          // Fallback to @fontsource if local assets are missing
+          if (!GlobalFonts.has(fontFamily)) {
+            try {
+              const regularModulePath = require.resolve('@fontsource/open-sans/files/open-sans-latin-400-normal.woff2');
+              const boldModulePath = require.resolve('@fontsource/open-sans/files/open-sans-latin-700-normal.woff2');
+              // These are woff2 files; registerFromPath supports TTF/OTF best, but napi-rs/canvas can load WOFF2 via fontconfig in some envs.
+              // Try anyway, and if it fails we'll fall back to system sans-serif.
+              GlobalFonts.registerFromPath(regularModulePath, fontFamily);
+              GlobalFonts.registerFromPath(boldModulePath, fontFamily);
+              Logger.info('Registered fonts from @fontsource', { fontFamily });
+            } catch (e2) {
+              Logger.warn('Could not register @fontsource fonts', {
+                error: e2 instanceof Error ? e2.message : 'Unknown error'
+              });
+            }
+          }
+          Logger.info('Font registration status', { hasFont: GlobalFonts.has(fontFamily) });
+        }
+        if (!GlobalFonts.has(fontFamily)) {
+          fontFamily = 'sans-serif';
+        }
+      } catch (e) {
+        Logger.warn('Failed to register fonts. Falling back to system fonts.', {
+          error: e instanceof Error ? e.message : 'Unknown error'
+        });
+        fontFamily = 'sans-serif';
+      }
+
       const width = 800;
       const height = 400;
       const canvas = createCanvas(width, height);
       const ctx = canvas.getContext('2d');
 
       const { Chart: ChartJS } = await import('chart.js/auto');
+
+      // Set global defaults to ensure solid black text with our registered font
+      ChartJS.defaults.font.family = fontFamily;
+      ChartJS.defaults.color = '#000000';
+
+      // Ensure a fully opaque background after Chart.js clears the canvas
+      const backgroundFillPlugin = {
+        id: 'background_fill',
+        beforeDraw: (chart: any) => {
+          const { ctx: c, width: w, height: h } = chart;
+          c.save();
+          c.globalCompositeOperation = 'destination-over';
+          c.fillStyle = '#ffffff';
+          c.fillRect(0, 0, w, h);
+          c.restore();
+        }
+      };
+      ChartJS.register(backgroundFillPlugin);
       
       // Create background gradients with more vibrant colors
       const redZoneGradient = ctx.createLinearGradient(0, 0, 0, height);
@@ -43,16 +104,14 @@ export class ChartService {
       greenZoneGradient.addColorStop(0, 'rgba(0, 255, 0, 0.2)');  // More vibrant green
       greenZoneGradient.addColorStop(1, 'rgba(0, 255, 0, 0.2)');
 
-      // Set pure white background with 100% opacity
-      ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, width, height);
+      // Background is now handled by the Chart.js plugin above
 
       const configuration: ChartConfiguration = {
         type: 'line',
         data: {
           labels: data.times.map(time => format(new Date(time), 'dd/MM')),
           datasets: [
-            // MVRV line first (will be drawn on top)
+            // MVRV line
             {
               label: 'MVRV',
               data: data.values,
@@ -115,7 +174,7 @@ export class ChartService {
               text: 'Bitcoin MVRV - Últimos 180 dias',
               font: {
                 size: 20,
-                family: 'Comic Sans MS',
+                family: fontFamily,
                 weight: 'bold'  // Make font bolder
               },
               color: '#000000',  // Pure black for text
@@ -133,7 +192,7 @@ export class ChartService {
               },
               ticks: {
                 font: {
-                  family: 'Comic Sans MS',
+                  family: fontFamily,
                   weight: 'bold'  // Make font bolder
                 },
                 color: '#000000'  // Pure black for text
@@ -145,7 +204,7 @@ export class ChartService {
               },
               ticks: {
                 font: {
-                  family: 'Comic Sans MS',
+                  family: fontFamily,
                   size: 10,
                   weight: 'bold'  // Make font bolder
                 },
