@@ -34,22 +34,6 @@ export class ChartService {
           if (existsSync(boldPath)) {
             GlobalFonts.registerFromPath(boldPath, fontFamily);
           }
-          // Fallback to @fontsource if local assets are missing
-          if (!GlobalFonts.has(fontFamily)) {
-            try {
-              const regularModulePath = require.resolve('@fontsource/open-sans/files/open-sans-latin-400-normal.woff2');
-              const boldModulePath = require.resolve('@fontsource/open-sans/files/open-sans-latin-700-normal.woff2');
-              // These are woff2 files; registerFromPath supports TTF/OTF best, but napi-rs/canvas can load WOFF2 via fontconfig in some envs.
-              // Try anyway, and if it fails we'll fall back to system sans-serif.
-              GlobalFonts.registerFromPath(regularModulePath, fontFamily);
-              GlobalFonts.registerFromPath(boldModulePath, fontFamily);
-              Logger.info('Registered fonts from @fontsource', { fontFamily });
-            } catch (e2) {
-              Logger.warn('Could not register @fontsource fonts', {
-                error: e2 instanceof Error ? e2.message : 'Unknown error'
-              });
-            }
-          }
           Logger.info('Font registration status', { hasFont: GlobalFonts.has(fontFamily) });
         }
         if (!GlobalFonts.has(fontFamily)) {
