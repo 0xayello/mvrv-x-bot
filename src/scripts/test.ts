@@ -46,9 +46,7 @@ async function test() {
 
     // Generate and save chart
     Logger.info('Generating chart...');
-    const headerLine1 = 'Bitcoin MVRV - Últimos 180 dias';
-    const headerLine2 = `MVRV atual: ${mvrv.toFixed(2)} | Dominância BTC: ${dominance.toFixed(2)}%`;
-    const chartImage = await chart.generateMVRVChart(mvrvHistory, [headerLine1, headerLine2]);
+    const chartImage = await chart.generateMVRVChart(mvrvHistory);
     
     // Save chart locally for inspection
     const testImagePath = join(process.cwd(), 'test-chart.png');

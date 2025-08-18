@@ -11,7 +11,7 @@ interface ChartData {
 }
 
 export class ChartService {
-  async generateMVRVChart(data: ChartData, headerLines?: string[]): Promise<Buffer> {
+  async generateMVRVChart(data: ChartData): Promise<Buffer> {
     try {
       Logger.info('Generating MVRV chart with data', {
         numberOfPoints: data.times.length,
@@ -55,9 +55,9 @@ export class ChartService {
         fontFamily = 'sans-serif';
       }
 
-      // Use Twitter-friendly 16:9 aspect ratio to avoid aggressive cropping
-      const width = 1200;
-      const height = 675;
+      // Use simpler 4:3 aspect ratio with more padding
+      const width = 800;
+      const height = 600;
       const canvas = createCanvas(width, height);
       const ctx = canvas.getContext('2d');
 
@@ -156,15 +156,23 @@ export class ChartService {
           },
           layout: {
             padding: {
-              left: 40,
-              right: 40,
-              top: 60,
-              bottom: 40
+              left: 60,
+              right: 60,
+              top: 80,
+              bottom: 60
             }
           },
           plugins: {
             title: {
-              display: false
+              display: true,
+              text: 'Bitcoin MVRV - Últimos 180 dias',
+              font: {
+                size: 24,
+                family: fontFamily,
+                weight: 'bold'
+              },
+              color: '#000000',
+              padding: 20
             },
             legend: {
               display: false
@@ -179,9 +187,10 @@ export class ChartService {
               ticks: {
                 font: {
                   family: fontFamily,
-                  weight: 'bold'  // Make font bolder
+                  size: 14,
+                  weight: 'bold'
                 },
-                color: '#000000'  // Pure black for text
+                color: '#000000'
               }
             },
             x: {
@@ -191,18 +200,17 @@ export class ChartService {
               ticks: {
                 font: {
                   family: fontFamily,
-                  size: 10,
-                  weight: 'bold'  // Make font bolder
+                  size: 12,
+                  weight: 'bold'
                 },
-                color: '#000000',  // Pure black for text
-                maxRotation: 45,
-                minRotation: 45,
-                autoSkip: false,
+                color: '#000000',
+                maxRotation: 0,
+                minRotation: 0,
+                autoSkip: true,
+                maxTicksLimit: 8,
                 callback: function(val, index) {
                   const date = new Date(data.times[index]);
-                  
-                  // Show only first day of each month
-                  return date.getDate() === 1 ? format(date, 'dd/MM') : '';
+                  return date.getDate() === 1 ? format(date, 'MM/dd') : '';
                 }
               }
             }
@@ -212,39 +220,6 @@ export class ChartService {
 
       // @ts-ignore - Canvas context type mismatch, but it works
       new ChartJS(ctx, configuration);
-
-      // Desenhar cabeçalho incorporando a frase dentro da imagem
-      if (headerLines && headerLines.length) {
-        const paddingX = 40;
-        const top = 12;
-        const headerHeight = 100;
-        const left = paddingX;
-        const right = width - paddingX;
-
-        ctx.save();
-        ctx.globalAlpha = 1;
-        // faixa semi-opaca para melhor legibilidade
-        ctx.fillStyle = 'rgba(255,255,255,0.95)';
-        ctx.strokeStyle = 'rgba(0,0,0,0.08)';
-        ctx.lineWidth = 1;
-        ctx.fillRect(left, top, right - left, headerHeight);
-        ctx.strokeRect(left, top, right - left, headerHeight);
-
-        ctx.fillStyle = '#000000';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.font = `bold 24px ${Chart.defaults.font?.family || 'sans-serif'}`;
-        const centerX = (left + right) / 2;
-        const line1 = headerLines[0] || '';
-        ctx.fillText(line1, centerX, top + 34);
-
-        if (headerLines[1]) {
-          ctx.font = `bold 18px ${Chart.defaults.font?.family || 'sans-serif'}`;
-          ctx.fillText(headerLines[1], centerX, top + 72);
-        }
-
-        ctx.restore();
-      }
 
       const buffer = canvas.toBuffer('image/png');
       Logger.info('Chart generated successfully');
