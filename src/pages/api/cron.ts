@@ -42,7 +42,9 @@ export default async function handler(
     ]);
 
     // Generate chart
-    const chartImage = await chart.generateMVRVChart(mvrvHistory);
+    const headerLine1 = 'Bitcoin MVRV - Últimos 180 dias';
+    const headerLine2 = `MVRV atual: ${bitcoinMVRV.toFixed(2)} | Dominância BTC: ${bitcoinDominance.toFixed(2)}%`;
+    const chartImage = await chart.generateMVRVChart(mvrvHistory, [headerLine1, headerLine2]);
 
     // Format message
     const mvrvClassification = getMVRVClassification(bitcoinMVRV);

@@ -11,7 +11,7 @@ interface ChartData {
 }
 
 export class ChartService {
-  async generateMVRVChart(data: ChartData): Promise<Buffer> {
+  async generateMVRVChart(data: ChartData, headerLines?: string[]): Promise<Buffer> {
     try {
       Logger.info('Generating MVRV chart with data', {
         numberOfPoints: data.times.length,
@@ -68,69 +68,7 @@ export class ChartService {
       ChartJS.defaults.color = '#000000';
       ChartJS.defaults.devicePixelRatio = 2;
 
-      // Draw essential labels inside chart area so que não sejam cortados por plataformas
-      // Usa fill + stroke para maximizar contraste independentemente do fundo
-      const overlayLabelsPlugin = {
-        id: 'overlay_labels',
-        afterDraw: (chart: any) => {
-          const { ctx: c, chartArea, scales } = chart;
-          if (!chartArea) return;
-          const xScale = scales?.x;
-          const yScale = scales?.y;
-          
-          c.save();
-          // Reset any transforms and alpha that Chart.js may have left
-          c.setTransform(1, 0, 0, 1, 0, 0);
-          c.globalAlpha = 1;
-          c.fillStyle = '#000000';
-          c.strokeStyle = '#ffffff';
-          c.lineWidth = 4;
-          c.font = `bold 22px ${fontFamily}`;
-          c.textAlign = 'center';
-          c.textBaseline = 'top';
-          
-          // Título dentro da área (top center)
-          const title = 'Bitcoin MVRV - Últimos 180 dias';
-          c.strokeText(title, (chartArea.left + chartArea.right) / 2, chartArea.top + 6);
-          c.fillText(title, (chartArea.left + chartArea.right) / 2, chartArea.top + 6);
-
-          // Key Y tick labels inside area on the left
-          if (yScale) {
-            c.textAlign = 'left';
-            c.textBaseline = 'middle';
-            c.font = `bold 16px ${fontFamily}`;
-            const yValues = [1.0, 2.0, 3.0, 4.0];
-            for (const v of yValues) {
-              const py = yScale.getPixelForValue(v);
-              if (py > chartArea.top && py < chartArea.bottom) {
-                const text = v.toFixed(1);
-                c.strokeText(text, chartArea.left + 8, py);
-                c.fillText(text, chartArea.left + 8, py);
-              }
-            }
-          }
-
-          // Minimal X labels for months inside area bottom
-          if (xScale && Array.isArray(data.times)) {
-            c.textAlign = 'center';
-            c.textBaseline = 'bottom';
-            c.font = `bold 14px ${fontFamily}`;
-            for (let i = 0; i < data.times.length; i++) {
-              const date = new Date(data.times[i]);
-              if (date.getDate() === 1) {
-                const px = xScale.getPixelForValue(i);
-                if (px > chartArea.left && px < chartArea.right) {
-                  const label = format(date, 'dd/MM');
-                  c.strokeText(label, px, chartArea.bottom - 2);
-                  c.fillText(label, px, chartArea.bottom - 2);
-                }
-              }
-            }
-          }
-          c.restore();
-        }
-      };
-      ChartJS.register(overlayLabelsPlugin);
+      // Remove overlay labels; usaremos um cabeçalho dedicado incorporado na imagem
       
       // Create background gradients with more vibrant colors
       const redZoneGradient = ctx.createLinearGradient(0, 0, 0, height);
@@ -226,15 +164,7 @@ export class ChartService {
           },
           plugins: {
             title: {
-              display: true,
-              text: 'Bitcoin MVRV - Últimos 180 dias',
-              font: {
-                size: 20,
-                family: fontFamily,
-                weight: 'bold'  // Make font bolder
-              },
-              color: '#000000',  // Pure black for text
-              padding: 20
+              display: false
             },
             legend: {
               display: false
@@ -282,6 +212,39 @@ export class ChartService {
 
       // @ts-ignore - Canvas context type mismatch, but it works
       new ChartJS(ctx, configuration);
+
+      // Desenhar cabeçalho incorporando a frase dentro da imagem
+      if (headerLines && headerLines.length) {
+        const paddingX = 40;
+        const top = 12;
+        const headerHeight = 100;
+        const left = paddingX;
+        const right = width - paddingX;
+
+        ctx.save();
+        ctx.globalAlpha = 1;
+        // faixa semi-opaca para melhor legibilidade
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+        ctx.lineWidth = 1;
+        ctx.fillRect(left, top, right - left, headerHeight);
+        ctx.strokeRect(left, top, right - left, headerHeight);
+
+        ctx.fillStyle = '#000000';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = `bold 24px ${Chart.defaults.font?.family || 'sans-serif'}`;
+        const centerX = (left + right) / 2;
+        const line1 = headerLines[0] || '';
+        ctx.fillText(line1, centerX, top + 34);
+
+        if (headerLines[1]) {
+          ctx.font = `bold 18px ${Chart.defaults.font?.family || 'sans-serif'}`;
+          ctx.fillText(headerLines[1], centerX, top + 72);
+        }
+
+        ctx.restore();
+      }
 
       const buffer = canvas.toBuffer('image/png');
       Logger.info('Chart generated successfully');
