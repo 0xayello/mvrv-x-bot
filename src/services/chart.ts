@@ -46,8 +46,9 @@ export class ChartService {
         fontFamily = 'sans-serif';
       }
 
-      const width = 800;
-      const height = 400;
+      // Use Twitter-friendly 16:9 aspect ratio to avoid aggressive cropping
+      const width = 1200;
+      const height = 675;
       const canvas = createCanvas(width, height);
       const ctx = canvas.getContext('2d');
 
@@ -56,6 +57,7 @@ export class ChartService {
       // Set global defaults to ensure solid black text with our registered font
       ChartJS.defaults.font.family = fontFamily;
       ChartJS.defaults.color = '#000000';
+      ChartJS.defaults.devicePixelRatio = 2;
 
       // Draw essential labels inside chart area so que não sejam cortados por plataformas
       // Usa fill + stroke para maximizar contraste independentemente do fundo
@@ -193,10 +195,10 @@ export class ChartService {
           maintainAspectRatio: false,
           layout: {
             padding: {
-              left: 20,
-              right: 20,
-              top: 30,
-              bottom: 20
+              left: 40,
+              right: 40,
+              top: 60,
+              bottom: 40
             }
           },
           plugins: {
