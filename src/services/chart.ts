@@ -97,34 +97,38 @@ export class ChartService {
 
       // Caminho A (recomendado pela comunidade): QuickChart (Chart.js SaaS)
       try {
-        const labels = data.times.map((t) => {
+        // Distribui rótulos de datas ao longo do eixo X (8–10 marcas, dependendo do número de pontos)
+        const desiredXTicks = 10;
+        const step = Math.max(1, Math.floor(data.times.length / desiredXTicks));
+        const labels = data.times.map((t, i) => {
+          if (i % step !== 0 && i !== data.times.length - 1) return '';
           const d = new Date(t);
-          return d.getDate() === 1 ? `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}` : '';
+          return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
         });
         const config = {
-          type: 'line',
-          data: {
+        type: 'line',
+        data: {
             labels,
-            datasets: [
+          datasets: [
               { label: 'MVRV', data: data.values, borderColor: 'rgb(0,150,255)', borderWidth: 3, pointRadius: 0, tension: 0.35, order: 10, fill: false },
-              { label: 'Red', data: data.values.map(() => 4), backgroundColor: 'rgba(255,0,0,0.2)', borderColor: 'transparent', fill: true, order: 1 },
-              { label: 'Orange', data: data.values.map(() => 3.5), backgroundColor: 'rgba(255,140,0,0.2)', borderColor: 'transparent', fill: true, order: 2 },
-              { label: 'Yellow', data: data.values.map(() => 3.0), backgroundColor: 'rgba(255,255,0,0.25)', borderColor: 'transparent', fill: true, order: 3 },
-              { label: 'Green', data: data.values.map(() => 1.0), backgroundColor: 'rgba(0,255,0,0.2)', borderColor: 'transparent', fill: true, order: 4 }
-            ]
-          },
-          options: {
+              { label: 'Red', data: data.values.map(() => 4), backgroundColor: 'rgba(255,0,0,0.18)', borderColor: 'transparent', fill: true, order: 1 },
+              { label: 'Orange', data: data.values.map(() => 3.5), backgroundColor: 'rgba(255,140,0,0.18)', borderColor: 'transparent', fill: true, order: 2 },
+              { label: 'Yellow', data: data.values.map(() => 3.0), backgroundColor: 'rgba(255,215,0,0.22)', borderColor: 'transparent', fill: true, order: 3 },
+              { label: 'Green', data: data.values.map(() => 1.0), backgroundColor: 'rgba(0,200,0,0.18)', borderColor: 'transparent', fill: true, order: 4 }
+          ]
+        },
+        options: {
             responsive: false,
             animation: false,
-            maintainAspectRatio: false,
-            plugins: {
+          maintainAspectRatio: false,
+          plugins: {
               legend: { display: false },
-              title: { display: true, text: 'Bitcoin MVRV - Últimos 180 dias', color: '#000', font: { size: 24, weight: 'bold' }, padding: 20 }
+              title: { display: true, text: 'Bitcoin MVRV - Últimos 180 dias', color: '#000', font: { size: 26, weight: 'bold' }, padding: { top: 16, bottom: 12 } }
             },
-            layout: { padding: { left: 60, right: 60, top: 60, bottom: 50 } },
-            scales: {
-              y: { beginAtZero: true, min: 0, max: 4.5, grid: { color: 'rgba(0,0,0,0.1)' }, ticks: { color: '#000', font: { weight: 'bold' } } },
-              x: { grid: { display: false }, ticks: { color: '#000', font: { size: 12, weight: 'bold' } } }
+            layout: { padding: { left: 60, right: 60, top: 56, bottom: 56 } },
+          scales: {
+              y: { beginAtZero: true, min: 0, max: 4.5, grid: { color: 'rgba(0,0,0,0.08)' }, ticks: { color: '#222', font: { weight: 'bold' }, stepSize: 0.5 } },
+              x: { grid: { display: false }, ticks: { color: '#222', font: { size: 12, weight: 'bold' }, maxRotation: 0, minRotation: 0, autoSkip: false } }
             }
           }
         };
