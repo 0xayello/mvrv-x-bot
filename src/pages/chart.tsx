@@ -39,7 +39,7 @@ export default function ChartPage() {
         const { ctx: c, width: w, height: h } = chart;
         c.save();
         c.globalCompositeOperation = 'destination-over';
-        c.fillStyle = '#f8f9fa';
+        c.fillStyle = '#e9ecef';
         c.fillRect(0, 0, w, h);
         c.restore();
       }
@@ -49,11 +49,11 @@ export default function ChartPage() {
 
     const toY = (v: number) => v; // Chart handles scaling
 
-    // Build gradients for zones - cores melhoradas
-    const red = 'rgba(220,20,60,0.25)';
-    const orange = 'rgba(255,100,0,0.20)';
-    const yellow = 'rgba(255,193,7,0.18)';
-    const green = 'rgba(34,139,34,0.22)';
+    // Build gradients for zones - cores corrigidas
+    const red = 'rgba(220,53,69,0.25)';
+    const orange = 'rgba(255,102,0,0.22)';
+    const yellow = 'rgba(255,193,7,0.20)';
+    const green = 'rgba(40,167,69,0.25)';
 
     // @ts-ignore
     new Chart(ctx, {
@@ -62,10 +62,10 @@ export default function ChartPage() {
         labels: times.map(() => ''),
         datasets: [
           { label: 'MVRV', data: values, borderColor: 'rgb(0,150,255)', borderWidth: 3, pointRadius: 0, tension: 0.35, order: 10 },
-          { label: 'Red', data: values.map(() => 4), backgroundColor: red, borderColor: 'transparent', fill: true, order: 1 },
-          { label: 'Orange', data: values.map(() => 3.5), backgroundColor: orange, borderColor: 'transparent', fill: true, order: 2 },
-          { label: 'Yellow', data: values.map(() => 3.0), backgroundColor: yellow, borderColor: 'transparent', fill: true, order: 3 },
-          { label: 'Green', data: values.map(() => 1.0), backgroundColor: green, borderColor: 'transparent', fill: true, order: 4 },
+          { label: 'Green', data: values.map(() => 1.0), backgroundColor: green, borderColor: 'transparent', fill: 'origin', order: 1 },
+          { label: 'Yellow', data: values.map(() => 3.0), backgroundColor: yellow, borderColor: 'transparent', fill: '-1', order: 2 },
+          { label: 'Orange', data: values.map(() => 3.5), backgroundColor: orange, borderColor: 'transparent', fill: '-1', order: 3 },
+          { label: 'Red', data: values.map(() => 4), backgroundColor: red, borderColor: 'transparent', fill: '-1', order: 4 },
         ]
       },
       options: {

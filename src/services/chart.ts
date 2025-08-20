@@ -76,15 +76,15 @@ export class ChartService {
   </defs>
   
   <!-- Fundo cinza neutro -->
-  <rect x="0" y="0" width="${width}" height="${height}" fill="#f8f9fa" />
+  <rect x="0" y="0" width="${width}" height="${height}" fill="#e9ecef" />
   
   <text x="${width/2}" y="50" text-anchor="middle" class="title">Bitcoin MVRV - Últimos 180 dias</text>
 
-  <!-- Zonas com cores melhoradas -->
-  <rect x="${chartArea.left}" y="${getY(1.0)}" width="${chartArea.width}" height="${chartArea.bottom - getY(1.0)}" fill="rgba(34,139,34,0.22)" />
-  <rect x="${chartArea.left}" y="${getY(3.0)}" width="${chartArea.width}" height="${getY(1.0) - getY(3.0)}" fill="rgba(255,193,7,0.18)" />
-  <rect x="${chartArea.left}" y="${getY(3.5)}" width="${chartArea.width}" height="${getY(3.0) - getY(3.5)}" fill="rgba(255,100,0,0.20)" />
-  <rect x="${chartArea.left}" y="${chartArea.top}" width="${chartArea.width}" height="${getY(3.5) - chartArea.top}" fill="rgba(220,20,60,0.25)" />
+  <!-- Zonas com cores corrigidas (gradiente verde->vermelho) -->
+  <rect x="${chartArea.left}" y="${getY(1.0)}" width="${chartArea.width}" height="${chartArea.bottom - getY(1.0)}" fill="rgba(40,167,69,0.25)" />
+  <rect x="${chartArea.left}" y="${getY(3.0)}" width="${chartArea.width}" height="${getY(1.0) - getY(3.0)}" fill="rgba(255,193,7,0.20)" />
+  <rect x="${chartArea.left}" y="${getY(3.5)}" width="${chartArea.width}" height="${getY(3.0) - getY(3.5)}" fill="rgba(255,102,0,0.22)" />
+  <rect x="${chartArea.left}" y="${chartArea.top}" width="${chartArea.width}" height="${getY(3.5) - chartArea.top}" fill="rgba(220,53,69,0.25)" />
 
   <!-- Grade Y -->
   ${[0,1,2,3,4].map(i => `<line x1="${chartArea.left}" y1="${getY(i)}" x2="${chartArea.right}" y2="${getY(i)}" stroke="rgba(0,0,0,0.1)" stroke-width="1" />`).join('')}
@@ -114,10 +114,10 @@ export class ChartService {
             labels,
           datasets: [
               { label: 'MVRV', data: data.values, borderColor: 'rgb(0,150,255)', borderWidth: 3, pointRadius: 0, tension: 0.35, order: 10, fill: false },
-              { label: 'Red', data: data.values.map(() => 4), backgroundColor: 'rgba(220,20,60,0.25)', borderColor: 'transparent', fill: true, order: 1 },
-              { label: 'Orange', data: data.values.map(() => 3.5), backgroundColor: 'rgba(255,100,0,0.20)', borderColor: 'transparent', fill: true, order: 2 },
-              { label: 'Yellow', data: data.values.map(() => 3.0), backgroundColor: 'rgba(255,193,7,0.18)', borderColor: 'transparent', fill: true, order: 3 },
-              { label: 'Green', data: data.values.map(() => 1.0), backgroundColor: 'rgba(34,139,34,0.22)', borderColor: 'transparent', fill: true, order: 4 }
+              { label: 'Green', data: data.values.map(() => 1.0), backgroundColor: 'rgba(40,167,69,0.25)', borderColor: 'transparent', fill: 'origin', order: 1 },
+              { label: 'Yellow', data: data.values.map(() => 3.0), backgroundColor: 'rgba(255,193,7,0.20)', borderColor: 'transparent', fill: '-1', order: 2 },
+              { label: 'Orange', data: data.values.map(() => 3.5), backgroundColor: 'rgba(255,102,0,0.22)', borderColor: 'transparent', fill: '-1', order: 3 },
+              { label: 'Red', data: data.values.map(() => 4), backgroundColor: 'rgba(220,53,69,0.25)', borderColor: 'transparent', fill: '-1', order: 4 }
           ]
         },
         options: {
@@ -140,7 +140,7 @@ export class ChartService {
           width,
           height,
           format: 'png',
-          backgroundColor: '#f8f9fa',
+          backgroundColor: '#e9ecef',
           version: '4.4.1',
           chart: config
         } as any;
