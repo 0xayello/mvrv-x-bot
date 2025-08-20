@@ -1,6 +1,4 @@
-import { createCanvas, GlobalFonts, loadImage } from '@napi-rs/canvas';
-import { Resvg } from '@resvg/resvg-js';
-import { Chart, ChartConfiguration } from 'chart.js';
+import { createCanvas, GlobalFonts } from '@napi-rs/canvas';
 import { format } from 'date-fns';
 import { Logger } from '../utils/logger';
 import { join } from 'path';
@@ -56,188 +54,110 @@ export class ChartService {
         fontFamily = 'sans-serif';
       }
 
-      // Use simpler 4:3 aspect ratio with more padding
-      const width = 800;
-      const height = 600;
+      // Restore original Twitter-friendly 16:9 aspect ratio
+      const width = 1200;
+      const height = 675;
       const canvas = createCanvas(width, height);
       const ctx = canvas.getContext('2d');
 
-      const { Chart: ChartJS } = await import('chart.js/auto');
-
-      // Set global defaults to ensure solid black text with our registered font
-      ChartJS.defaults.font.family = fontFamily;
-      ChartJS.defaults.color = '#000000';
-      ChartJS.defaults.devicePixelRatio = 2;
-
-      // Remove overlay labels; usaremos um cabeçalho dedicado incorporado na imagem
+      // MUDANÇA DRÁSTICA: Renderização 100% via Canvas puro
+      // Elimina qualquer problema de Chart.js com fontes/transparência
       
-      // Create background gradients with more vibrant colors
-      const redZoneGradient = ctx.createLinearGradient(0, 0, 0, height);
-      redZoneGradient.addColorStop(0, 'rgba(255, 0, 0, 0.2)');  // More vibrant red
-      redZoneGradient.addColorStop(1, 'rgba(255, 0, 0, 0.2)');
-
-      const orangeZoneGradient = ctx.createLinearGradient(0, 0, 0, height);
-      orangeZoneGradient.addColorStop(0, 'rgba(255, 140, 0, 0.2)');  // More vibrant orange
-      orangeZoneGradient.addColorStop(1, 'rgba(255, 140, 0, 0.2)');
-
-      const yellowZoneGradient = ctx.createLinearGradient(0, 0, 0, height);
-      yellowZoneGradient.addColorStop(0, 'rgba(255, 255, 0, 0.25)');  // More vibrant yellow
-      yellowZoneGradient.addColorStop(1, 'rgba(255, 255, 0, 0.25)');
-
-      const greenZoneGradient = ctx.createLinearGradient(0, 0, 0, height);
-      greenZoneGradient.addColorStop(0, 'rgba(0, 255, 0, 0.2)');  // More vibrant green
-      greenZoneGradient.addColorStop(1, 'rgba(0, 255, 0, 0.2)');
-
-      // Background is now handled by the Chart.js plugin above
-
-      const configuration: ChartConfiguration = {
-        type: 'line',
-        data: {
-          labels: data.times.map(time => format(new Date(time), 'dd/MM')),
-          datasets: [
-            // MVRV line
-            {
-              label: 'MVRV',
-              data: data.values,
-              borderColor: 'rgb(0, 150, 255)',  // More vibrant blue
-              borderWidth: 2.5,  // Slightly thicker line
-              tension: 0.4,
-              pointRadius: 0,
-              fill: false,
-              yAxisID: 'y',
-              order: 10
-            },
-            // Background datasets for zones
-            {
-              label: 'Red Zone (>3.5)',
-              data: Array(data.times.length).fill(4),
-              backgroundColor: redZoneGradient,
-              borderColor: 'transparent',
-              fill: true,
-              yAxisID: 'y',
-              order: 1
-            },
-            {
-              label: 'Orange Zone (3.0-3.5)',
-              data: Array(data.times.length).fill(3.5),
-              backgroundColor: orangeZoneGradient,
-              borderColor: 'transparent',
-              fill: true,
-              yAxisID: 'y',
-              order: 2
-            },
-            {
-              label: 'Yellow Zone (1.0-3.0)',
-              data: Array(data.times.length).fill(3.0),
-              backgroundColor: yellowZoneGradient,
-              borderColor: 'transparent',
-              fill: true,
-              yAxisID: 'y',
-              order: 3
-            },
-            {
-              label: 'Green Zone (<1.0)',
-              data: Array(data.times.length).fill(1.0),
-              backgroundColor: greenZoneGradient,
-              borderColor: 'transparent',
-              fill: true,
-              yAxisID: 'y',
-              order: 4
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          animation: false,
-          animations: {
-            colors: false,
-            x: false,
-            y: false
-          },
-          layout: {
-            padding: {
-              left: 60,
-              right: 60,
-              top: 80,
-              bottom: 60
-            }
-          },
-          plugins: {
-            title: {
-              display: true,
-              text: 'Bitcoin MVRV - Últimos 180 dias',
-              font: {
-                size: 24,
-                family: fontFamily,
-                weight: 'bold'
-              },
-              color: '#000000',
-              padding: 20
-            },
-            legend: {
-              display: false
-            }
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              grid: {
-                color: 'rgba(0, 0, 0, 0.1)'
-              },
-              ticks: {
-                font: {
-                  family: fontFamily,
-                  size: 14,
-                  weight: 'bold'
-                },
-                color: '#000000'
-              }
-            },
-            x: {
-              grid: {
-                display: false
-              },
-              ticks: {
-                font: {
-                  family: fontFamily,
-                  size: 12,
-                  weight: 'bold'
-                },
-                color: '#000000',
-                maxRotation: 0,
-                minRotation: 0,
-                autoSkip: true,
-                maxTicksLimit: 8,
-                callback: function(val, index) {
-                  const date = new Date(data.times[index]);
-                  return date.getDate() === 1 ? format(date, 'MM/dd') : '';
-                }
-              }
-            }
+      // 1. Configurar canvas com fundo transparente
+      ctx.save();
+      ctx.globalAlpha = 1;
+      
+      // 2. Definir área do gráfico
+      const padding = { left: 80, right: 40, top: 80, bottom: 60 };
+      const chartArea = {
+        left: padding.left,
+        top: padding.top,
+        right: width - padding.right,
+        bottom: height - padding.bottom,
+        width: width - padding.left - padding.right,
+        height: height - padding.top - padding.bottom
+      };
+      
+      // 3. Desenhar zonas coloridas
+      const yMin = 0;
+      const yMax = 4.5;
+      const getY = (value: number) => chartArea.bottom - ((value - yMin) / (yMax - yMin)) * chartArea.height;
+      
+      // Zona verde (0-1.0)
+      ctx.fillStyle = 'rgba(0, 255, 0, 0.15)';
+      ctx.fillRect(chartArea.left, getY(1.0), chartArea.width, chartArea.bottom - getY(1.0));
+      
+      // Zona amarela (1.0-3.0)
+      ctx.fillStyle = 'rgba(255, 255, 0, 0.2)';
+      ctx.fillRect(chartArea.left, getY(3.0), chartArea.width, getY(1.0) - getY(3.0));
+      
+      // Zona laranja (3.0-3.5)
+      ctx.fillStyle = 'rgba(255, 140, 0, 0.15)';
+      ctx.fillRect(chartArea.left, getY(3.5), chartArea.width, getY(3.0) - getY(3.5));
+      
+      // Zona vermelha (3.5+)
+      ctx.fillStyle = 'rgba(255, 0, 0, 0.15)';
+      ctx.fillRect(chartArea.left, chartArea.top, chartArea.width, getY(3.5) - chartArea.top);
+      
+      // 4. Desenhar grade Y
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) {
+        const y = getY(i);
+        ctx.beginPath();
+        ctx.moveTo(chartArea.left, y);
+        ctx.lineTo(chartArea.right, y);
+        ctx.stroke();
+      }
+      
+      // 5. Desenhar linha MVRV
+      if (data.values.length > 0) {
+        const getX = (index: number) => chartArea.left + (index / (data.values.length - 1)) * chartArea.width;
+        
+        ctx.strokeStyle = 'rgb(0, 150, 255)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        
+        for (let i = 0; i < data.values.length; i++) {
+          const x = getX(i);
+          const y = getY(Math.max(yMin, Math.min(yMax, data.values[i])));
+          if (i === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
           }
         }
-      };
-
-      // @ts-ignore - Canvas context type mismatch, but it works
-      new ChartJS(ctx, configuration);
-
-      // Drástica mudança: renderizar as legendas (título e eixos) como SVG e rasterizar via resvg,
-      // sobrepondo no PNG final para garantir fidelidade tipográfica em qualquer ambiente
-      const svgTitle = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-  <style>
-    @font-face { font-family: 'DejaVu Sans'; src: url('assets/fonts/DejaVuSans.ttf'); }
-    .title { font: 700 24px '${fontFamily}', 'DejaVu Sans', sans-serif; fill: #000; }
-  </style>
-  <text x="${width/2}" y="40" text-anchor="middle" class="title">Bitcoin MVRV - Últimos 180 dias</text>
-</svg>`;
-      try {
-        const resvg = new Resvg(svgTitle, { fitTo: { mode: 'original' } });
-        const svgPng = resvg.render().asPng();
-        const img = await loadImage(Buffer.from(svgPng));
-        ctx.drawImage(img, 0, 0);
-      } catch {}
+        ctx.stroke();
+      }
+      
+      // 6. Desenhar texto com fallbacks robustos
+      ctx.fillStyle = '#000000';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
+      // Título principal
+      ctx.font = `bold 24px ${fontFamily}`;
+      ctx.fillText('Bitcoin MVRV - Últimos 180 dias', width / 2, 40);
+      
+      // Rótulos do eixo Y
+      ctx.textAlign = 'right';
+      ctx.font = `bold 14px ${fontFamily}`;
+      for (let i = 0; i <= 4; i++) {
+        ctx.fillText(i.toString(), chartArea.left - 10, getY(i));
+      }
+      
+      // Rótulos do eixo X (meses)
+      ctx.textAlign = 'center';
+      ctx.font = `bold 12px ${fontFamily}`;
+      for (let i = 0; i < data.times.length; i += Math.ceil(data.times.length / 6)) {
+        if (i < data.times.length) {
+          const date = new Date(data.times[i]);
+          const x = chartArea.left + (i / (data.values.length - 1)) * chartArea.width;
+          ctx.fillText(format(date, 'dd/MM'), x, chartArea.bottom + 30);
+        }
+      }
+      
+      ctx.restore();
 
       const buffer = canvas.toBuffer('image/png');
       Logger.info('Chart generated successfully');
