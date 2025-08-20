@@ -10,7 +10,8 @@
     "test-bot": "node -r ts-node/register -r dotenv/config src/scripts/test.ts"
   },
   "dependencies": {
-    "puppeteer": "^21.11.0",
+    "puppeteer-core": "^21.11.0",
+    "@sparticuz/chromium": "^126.0.0",
     "date-fns": "^4.1.0",
     "dotenv": "^16.4.7",
     "next": "latest",

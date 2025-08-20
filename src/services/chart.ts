@@ -1,4 +1,5 @@
-import puppeteer from 'puppeteer';
+import chromium from '@sparticuz/chromium';
+import puppeteer from 'puppeteer-core';
 import { format } from 'date-fns';
 import { Logger } from '../utils/logger';
 
@@ -91,14 +92,16 @@ export class ChartService {
 </body>
 </html>`;
 
-      // Usar Puppeteer para renderizar HTML para PNG
+      // Usar puppeteer-core + @sparticuz/chromium (compatível com Vercel)
+      const executablePath = await chromium.executablePath();
       browser = await puppeteer.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+        args: chromium.args,
+        defaultViewport: { width, height, deviceScaleFactor: 2 },
+        executablePath,
+        headless: chromium.headless
       });
       
       const page = await browser.newPage();
-      await page.setViewport({ width, height, deviceScaleFactor: 2 });
       await page.setContent(html);
       
       const buffer = await page.screenshot({
