@@ -1,5 +1,4 @@
-import chromium from '@sparticuz/chromium';
-import puppeteer from 'puppeteer-core';
+import { Resvg } from '@resvg/resvg-js';
 import { format } from 'date-fns';
 import { Logger } from '../utils/logger';
 
@@ -10,9 +9,8 @@ interface ChartData {
 
 export class ChartService {
   async generateMVRVChart(data: ChartData): Promise<Buffer> {
-    let browser;
     try {
-      Logger.info('Generating MVRV chart with Puppeteer/HTML', {
+      Logger.info('Generating MVRV chart with SVG/Resvg', {
         numberOfPoints: data.times.length,
         firstDate: data.times[0],
         lastDate: data.times[data.times.length - 1]
@@ -53,68 +51,40 @@ export class ChartService {
         }
       }
 
-      const html = `
-<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { margin: 0; padding: 0; background: transparent; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-    .chart { width: ${width}px; height: ${height}px; position: relative; background: transparent; }
-    .title { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); font-size: 28px; font-weight: bold; color: #000; text-shadow: 2px 2px 4px rgba(255,255,255,0.8); }
-    .y-label { position: absolute; font-size: 18px; font-weight: bold; color: #000; text-shadow: 1px 1px 2px rgba(255,255,255,0.8); }
-    .x-label { position: absolute; font-size: 14px; font-weight: bold; color: #000; text-shadow: 1px 1px 2px rgba(255,255,255,0.8); }
-  </style>
-</head>
-<body>
-  <div class="chart">
-    <div class="title">Bitcoin MVRV - Últimos 180 dias</div>
-    
-    <svg width="${width}" height="${height}" style="position: absolute; top: 0; left: 0;">
-      <!-- Zonas coloridas -->
-      <rect x="${chartArea.left}" y="${getY(1.0)}" width="${chartArea.width}" height="${chartArea.bottom - getY(1.0)}" fill="rgba(0, 255, 0, 0.15)" />
-      <rect x="${chartArea.left}" y="${getY(3.0)}" width="${chartArea.width}" height="${getY(1.0) - getY(3.0)}" fill="rgba(255, 255, 0, 0.2)" />
-      <rect x="${chartArea.left}" y="${getY(3.5)}" width="${chartArea.width}" height="${getY(3.0) - getY(3.5)}" fill="rgba(255, 140, 0, 0.15)" />
-      <rect x="${chartArea.left}" y="${chartArea.top}" width="${chartArea.width}" height="${getY(3.5) - chartArea.top}" fill="rgba(255, 0, 0, 0.15)" />
-      
-      <!-- Grade Y -->
-      ${[0,1,2,3,4].map(i => `<line x1="${chartArea.left}" y1="${getY(i)}" x2="${chartArea.right}" y2="${getY(i)}" stroke="rgba(0,0,0,0.1)" stroke-width="1" />`).join('')}
-      
-      <!-- Linha MVRV -->
-      <polyline points="${linePoints}" fill="none" stroke="rgb(0, 150, 255)" stroke-width="3" />
-    </svg>
-    
-    <!-- Rótulos Y -->
-    ${[0,1,2,3,4].map(i => `<div class="y-label" style="right: ${width - chartArea.left + 25}px; top: ${getY(i) - 9}px;">${i}</div>`).join('')}
-    
-    <!-- Rótulos X -->
-    ${xLabels.map(label => `<div class="x-label" style="left: ${label.x - 20}px; top: ${chartArea.bottom + 25}px;">${label.text}</div>`).join('')}
-  </div>
-</body>
-</html>`;
+      const svg = `
+<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+  <defs>
+    <style>
+      .title { font: 700 28px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill: #000; }
+      .yl { font: 700 18px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill: #000; }
+      .xl { font: 700 14px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill: #000; }
+    </style>
+  </defs>
+  <text x="${width/2}" y="40" text-anchor="middle" class="title">Bitcoin MVRV - Últimos 180 dias</text>
 
-      // Usar puppeteer-core + @sparticuz/chromium (compatível com Vercel)
-      const executablePath = await chromium.executablePath();
-      const headlessFlag = typeof chromium.headless === 'boolean' ? chromium.headless : true;
-      browser = await puppeteer.launch({
-        args: chromium.args,
-        defaultViewport: { width, height, deviceScaleFactor: 2 },
-        executablePath,
-        headless: headlessFlag
-      });
-      
-      const page = await browser.newPage();
-      await page.setContent(html);
-      
-      const buffer = await page.screenshot({
-        type: 'png',
-        omitBackground: true,
-        clip: { x: 0, y: 0, width, height }
-      });
-      
-      await browser.close();
-      
-      Logger.info('Chart generated successfully with Puppeteer');
-      return buffer;
+  <!-- Zonas -->
+  <rect x="${chartArea.left}" y="${getY(1.0)}" width="${chartArea.width}" height="${chartArea.bottom - getY(1.0)}" fill="rgba(0,255,0,0.15)" />
+  <rect x="${chartArea.left}" y="${getY(3.0)}" width="${chartArea.width}" height="${getY(1.0) - getY(3.0)}" fill="rgba(255,255,0,0.2)" />
+  <rect x="${chartArea.left}" y="${getY(3.5)}" width="${chartArea.width}" height="${getY(3.0) - getY(3.5)}" fill="rgba(255,140,0,0.15)" />
+  <rect x="${chartArea.left}" y="${chartArea.top}" width="${chartArea.width}" height="${getY(3.5) - chartArea.top}" fill="rgba(255,0,0,0.15)" />
+
+  <!-- Grade Y -->
+  ${[0,1,2,3,4].map(i => `<line x1="${chartArea.left}" y1="${getY(i)}" x2="${chartArea.right}" y2="${getY(i)}" stroke="rgba(0,0,0,0.1)" stroke-width="1" />`).join('')}
+
+  <!-- Linha MVRV -->
+  <polyline points="${linePoints}" fill="none" stroke="rgb(0,150,255)" stroke-width="3" />
+
+  <!-- Rótulos Y -->
+  ${[0,1,2,3,4].map(i => `<text class="yl" x="${chartArea.left - 20}" y="${getY(i)+6}" text-anchor="end">${i}</text>`).join('')}
+
+  <!-- Rótulos X -->
+  ${xLabels.map(label => `<text class="xl" x="${label.x}" y="${chartArea.bottom + 25}" text-anchor="middle">${label.text}</text>`).join('')}
+</svg>`;
+
+      const resvg = new Resvg(svg, { fitTo: { mode: 'original' } });
+      const png = resvg.render().asPng();
+      Logger.info('Chart generated successfully with Resvg');
+      return Buffer.from(png);
     } catch (error) {
       if (browser) await browser.close();
       Logger.error('Failed to generate chart with Puppeteer', {
