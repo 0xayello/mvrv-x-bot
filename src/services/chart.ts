@@ -130,32 +130,111 @@ export class ChartService {
         ctx.stroke();
       }
       
-      // 6. Desenhar texto com fallbacks robustos
-      ctx.fillStyle = '#000000';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
+      // 6. DIAGNÓSTICO E RENDERIZAÇÃO DE TEXTO COM MÚLTIPLOS FALLBACKS
+      Logger.info('=== DIAGNÓSTICO DE TEXTO ===');
+      Logger.info('Fonte registrada:', { fontFamily, hasFont: GlobalFonts.has(fontFamily) });
       
-      // Título principal
-      ctx.font = `bold 24px ${fontFamily}`;
-      ctx.fillText('Bitcoin MVRV - Últimos 180 dias', width / 2, 40);
+      // Resetar transformações e alpha
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
       
-      // Rótulos do eixo Y
-      ctx.textAlign = 'right';
-      ctx.font = `bold 14px ${fontFamily}`;
-      for (let i = 0; i <= 4; i++) {
-        ctx.fillText(i.toString(), chartArea.left - 10, getY(i));
-      }
+      // Teste múltiplas estratégias de renderização
+      const textStrategies = [
+        { name: 'Estratégia 1: Fonte registrada + stroke + fill', font: `bold 24px "${fontFamily}"`, useStroke: true },
+        { name: 'Estratégia 2: Arial fallback + stroke + fill', font: 'bold 24px "Arial"', useStroke: true },
+        { name: 'Estratégia 3: Sans-serif + stroke + fill', font: 'bold 24px sans-serif', useStroke: true },
+        { name: 'Estratégia 4: Fonte registrada só fill', font: `bold 24px "${fontFamily}"`, useStroke: false },
+        { name: 'Estratégia 5: Arial só fill', font: 'bold 24px "Arial"', useStroke: false }
+      ];
       
-      // Rótulos do eixo X (meses)
-      ctx.textAlign = 'center';
-      ctx.font = `bold 12px ${fontFamily}`;
-      for (let i = 0; i < data.times.length; i += Math.ceil(data.times.length / 6)) {
-        if (i < data.times.length) {
-          const date = new Date(data.times[i]);
-          const x = chartArea.left + (i / (data.values.length - 1)) * chartArea.width;
-          ctx.fillText(format(date, 'dd/MM'), x, chartArea.bottom + 30);
+      for (let strategyIndex = 0; strategyIndex < textStrategies.length; strategyIndex++) {
+        const strategy = textStrategies[strategyIndex];
+        Logger.info(`Testando ${strategy.name}`);
+        
+        try {
+          ctx.save();
+          
+          // Configurar estilo base
+          ctx.font = strategy.font;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'top';
+          
+          // Título principal com múltiplas tentativas
+          const titleY = 20 + (strategyIndex * 25); // Espaçamento vertical para ver todas as tentativas
+          const titleText = `TESTE ${strategyIndex + 1}: Bitcoin MVRV - Últimos 180 dias`;
+          
+          if (strategy.useStroke) {
+            // Com contorno branco
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 4;
+            ctx.fillStyle = '#000000';
+            ctx.strokeText(titleText, width / 2, titleY);
+            ctx.fillText(titleText, width / 2, titleY);
+          } else {
+            // Só preenchimento preto
+            ctx.fillStyle = '#000000';
+            ctx.fillText(titleText, width / 2, titleY);
+          }
+          
+          Logger.info(`${strategy.name} executada`);
+          ctx.restore();
+        } catch (e) {
+          Logger.error(`Falha em ${strategy.name}:`, e);
+          ctx.restore();
         }
       }
+      
+      // Desenhar também rótulos de eixos com a melhor estratégia
+      try {
+        ctx.save();
+        ctx.font = 'bold 16px sans-serif'; // Usar sans-serif como mais confiável
+        ctx.fillStyle = '#000000';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        
+        // Rótulos do eixo Y
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        for (let i = 0; i <= 4; i++) {
+          const y = getY(i);
+          const text = i.toString();
+          ctx.strokeText(text, chartArea.left - 15, y);
+          ctx.fillText(text, chartArea.left - 15, y);
+        }
+        
+        // Rótulos do eixo X
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        for (let i = 0; i < data.times.length; i += Math.ceil(data.times.length / 6)) {
+          if (i < data.times.length) {
+            const date = new Date(data.times[i]);
+            const x = chartArea.left + (i / (data.values.length - 1)) * chartArea.width;
+            const text = format(date, 'dd/MM');
+            ctx.strokeText(text, x, chartArea.bottom + 15);
+            ctx.fillText(text, x, chartArea.bottom + 15);
+          }
+        }
+        
+        Logger.info('Rótulos de eixos renderizados');
+        ctx.restore();
+      } catch (e) {
+        Logger.error('Falha nos rótulos dos eixos:', e);
+        ctx.restore();
+      }
+      
+      // Desenhar um retângulo de teste para verificar se o canvas está funcionando
+      ctx.save();
+      ctx.fillStyle = '#ff0000';
+      ctx.fillRect(10, 10, 100, 20);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 14px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText('TESTE CANVAS', 15, 15);
+      ctx.restore();
+      
+      Logger.info('=== FIM DO DIAGNÓSTICO ===');
       
       ctx.restore();
 
