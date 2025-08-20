@@ -97,13 +97,12 @@ export class ChartService {
 
       // Caminho A (recomendado pela comunidade): QuickChart (Chart.js SaaS)
       try {
-        // Distribui rótulos de datas ao longo do eixo X (8–10 marcas, dependendo do número de pontos)
-        const desiredXTicks = 10;
-        const step = Math.max(1, Math.floor(data.times.length / desiredXTicks));
-        const labels = data.times.map((t, i) => {
-          if (i % step !== 0 && i !== data.times.length - 1) return '';
+        const monthAbbr = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+        // Rótulos somente no dia 01 de cada mês, usando nome do mês abreviado
+        const labels = data.times.map((t) => {
           const d = new Date(t);
-          return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+          if (d.getDate() !== 1) return '';
+          return monthAbbr[d.getMonth()];
         });
         const config = {
         type: 'line',
@@ -127,7 +126,7 @@ export class ChartService {
             },
             layout: { padding: { left: 60, right: 60, top: 56, bottom: 56 } },
           scales: {
-              y: { beginAtZero: true, min: 0, max: 4.5, grid: { color: 'rgba(0,0,0,0.08)' }, ticks: { color: '#222', font: { weight: 'bold' }, stepSize: 0.5 } },
+              y: { beginAtZero: true, min: 0, max: 4.5, grid: { color: 'rgba(0,0,0,0.08)' }, ticks: { color: '#222', font: { weight: 'bold' }, stepSize: 0.5, callback: (v: any) => String(v).replace('.', ',') } },
               x: { grid: { display: false }, ticks: { color: '#222', font: { size: 12, weight: 'bold' }, maxRotation: 0, minRotation: 0, autoSkip: false } }
             }
           }
@@ -137,7 +136,7 @@ export class ChartService {
           width,
           height,
           format: 'png',
-          backgroundColor: 'white',
+          backgroundColor: 'transparent',
           version: '4.4.1',
           chart: config
         } as any;
