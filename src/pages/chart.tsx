@@ -39,7 +39,7 @@ export default function ChartPage() {
         const { ctx: c, width: w, height: h } = chart;
         c.save();
         c.globalCompositeOperation = 'destination-over';
-        c.fillStyle = '#ffffff';
+        c.fillStyle = '#f8f9fa';
         c.fillRect(0, 0, w, h);
         c.restore();
       }
@@ -49,11 +49,11 @@ export default function ChartPage() {
 
     const toY = (v: number) => v; // Chart handles scaling
 
-    // Build gradients for zones
-    const red = 'rgba(255,0,0,0.2)';
-    const orange = 'rgba(255,140,0,0.2)';
-    const yellow = 'rgba(255,255,0,0.25)';
-    const green = 'rgba(0,255,0,0.2)';
+    // Build gradients for zones - cores melhoradas
+    const red = 'rgba(220,20,60,0.25)';
+    const orange = 'rgba(255,100,0,0.20)';
+    const yellow = 'rgba(255,193,7,0.18)';
+    const green = 'rgba(34,139,34,0.22)';
 
     // @ts-ignore
     new Chart(ctx, {
@@ -75,7 +75,7 @@ export default function ChartPage() {
           y: {
             beginAtZero: true,
             min: 0,
-            max: 4.5,
+            max: 4,
             grid: { color: 'rgba(0,0,0,0.1)' },
             ticks: { color: '#000', font: { weight: 'bold' } }
           },

@@ -30,7 +30,7 @@ export class ChartService {
       };
       
       const yMin = 0;
-      const yMax = 4.5;
+      const yMax = 4;
       const getY = (value: number) => chartArea.bottom - ((value - yMin) / (yMax - yMin)) * chartArea.height;
       const getX = (index: number) => chartArea.left + (index / (data.values.length - 1)) * chartArea.width;
       
@@ -69,18 +69,22 @@ export class ChartService {
   <defs>
     <style>
       ${fontCss}
-      .title { font: 700 28px DejaVuEmbed, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill: #000; }
+      .title { font: 700 24px DejaVuEmbed, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill: #000; }
       .yl { font: 700 18px DejaVuEmbed, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill: #000; }
       .xl { font: 700 14px DejaVuEmbed, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill: #000; }
     </style>
   </defs>
-  <text x="${width/2}" y="40" text-anchor="middle" class="title">Bitcoin MVRV - Últimos 180 dias</text>
+  
+  <!-- Fundo cinza neutro -->
+  <rect x="0" y="0" width="${width}" height="${height}" fill="#f8f9fa" />
+  
+  <text x="${width/2}" y="50" text-anchor="middle" class="title">Bitcoin MVRV - Últimos 180 dias</text>
 
-  <!-- Zonas -->
-  <rect x="${chartArea.left}" y="${getY(1.0)}" width="${chartArea.width}" height="${chartArea.bottom - getY(1.0)}" fill="rgba(0,255,0,0.15)" />
-  <rect x="${chartArea.left}" y="${getY(3.0)}" width="${chartArea.width}" height="${getY(1.0) - getY(3.0)}" fill="rgba(255,255,0,0.2)" />
-  <rect x="${chartArea.left}" y="${getY(3.5)}" width="${chartArea.width}" height="${getY(3.0) - getY(3.5)}" fill="rgba(255,140,0,0.15)" />
-  <rect x="${chartArea.left}" y="${chartArea.top}" width="${chartArea.width}" height="${getY(3.5) - chartArea.top}" fill="rgba(255,0,0,0.15)" />
+  <!-- Zonas com cores melhoradas -->
+  <rect x="${chartArea.left}" y="${getY(1.0)}" width="${chartArea.width}" height="${chartArea.bottom - getY(1.0)}" fill="rgba(34,139,34,0.22)" />
+  <rect x="${chartArea.left}" y="${getY(3.0)}" width="${chartArea.width}" height="${getY(1.0) - getY(3.0)}" fill="rgba(255,193,7,0.18)" />
+  <rect x="${chartArea.left}" y="${getY(3.5)}" width="${chartArea.width}" height="${getY(3.0) - getY(3.5)}" fill="rgba(255,100,0,0.20)" />
+  <rect x="${chartArea.left}" y="${chartArea.top}" width="${chartArea.width}" height="${getY(3.5) - chartArea.top}" fill="rgba(220,20,60,0.25)" />
 
   <!-- Grade Y -->
   ${[0,1,2,3,4].map(i => `<line x1="${chartArea.left}" y1="${getY(i)}" x2="${chartArea.right}" y2="${getY(i)}" stroke="rgba(0,0,0,0.1)" stroke-width="1" />`).join('')}
@@ -110,10 +114,10 @@ export class ChartService {
             labels,
           datasets: [
               { label: 'MVRV', data: data.values, borderColor: 'rgb(0,150,255)', borderWidth: 3, pointRadius: 0, tension: 0.35, order: 10, fill: false },
-              { label: 'Red', data: data.values.map(() => 4), backgroundColor: 'rgba(255,0,0,0.18)', borderColor: 'transparent', fill: true, order: 1 },
-              { label: 'Orange', data: data.values.map(() => 3.5), backgroundColor: 'rgba(255,140,0,0.18)', borderColor: 'transparent', fill: true, order: 2 },
-              { label: 'Yellow', data: data.values.map(() => 3.0), backgroundColor: 'rgba(255,215,0,0.22)', borderColor: 'transparent', fill: true, order: 3 },
-              { label: 'Green', data: data.values.map(() => 1.0), backgroundColor: 'rgba(0,200,0,0.18)', borderColor: 'transparent', fill: true, order: 4 }
+              { label: 'Red', data: data.values.map(() => 4), backgroundColor: 'rgba(220,20,60,0.25)', borderColor: 'transparent', fill: true, order: 1 },
+              { label: 'Orange', data: data.values.map(() => 3.5), backgroundColor: 'rgba(255,100,0,0.20)', borderColor: 'transparent', fill: true, order: 2 },
+              { label: 'Yellow', data: data.values.map(() => 3.0), backgroundColor: 'rgba(255,193,7,0.18)', borderColor: 'transparent', fill: true, order: 3 },
+              { label: 'Green', data: data.values.map(() => 1.0), backgroundColor: 'rgba(34,139,34,0.22)', borderColor: 'transparent', fill: true, order: 4 }
           ]
         },
         options: {
@@ -122,11 +126,11 @@ export class ChartService {
           maintainAspectRatio: false,
           plugins: {
               legend: { display: false },
-              title: { display: true, text: 'Bitcoin MVRV - Últimos 180 dias', color: '#000', font: { size: 26, weight: 'bold' }, padding: { top: 16, bottom: 12 } }
+              title: { display: true, text: 'Bitcoin MVRV - Últimos 180 dias', color: '#000', font: { size: 24, weight: 'bold' }, padding: { top: 20, bottom: 18 } }
             },
-            layout: { padding: { left: 60, right: 60, top: 56, bottom: 56 } },
+            layout: { padding: { left: 60, right: 60, top: 40, bottom: 50 } },
           scales: {
-              y: { beginAtZero: true, min: 0, max: 4.5, grid: { color: 'rgba(0,0,0,0.08)' }, ticks: { color: '#222', font: { weight: 'bold' }, stepSize: 0.5, callback: (v: any) => String(v).replace('.', ',') } },
+              y: { beginAtZero: true, min: 0, max: 4, grid: { color: 'rgba(0,0,0,0.08)' }, ticks: { color: '#222', font: { weight: 'bold' }, stepSize: 0.5, callback: (v: any) => String(v).replace('.', ',') } },
               x: { grid: { display: false }, ticks: { color: '#222', font: { size: 12, weight: 'bold' }, maxRotation: 0, minRotation: 0, autoSkip: false } }
             }
           }
@@ -136,7 +140,7 @@ export class ChartService {
           width,
           height,
           format: 'png',
-          backgroundColor: 'transparent',
+          backgroundColor: '#f8f9fa',
           version: '4.4.1',
           chart: config
         } as any;
