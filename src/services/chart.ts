@@ -53,13 +53,25 @@ export class ChartService {
 
       // Render chart in a hosted HTML page and take a screenshot via Vercel OG-like capture API
       // Fallback if direct SVG -> PNG ever fails
+      // Embed a font via data URL so Resvg always renders text
+      let fontCss = '';
+      try {
+        const fontResp = await fetch('https://raw.githubusercontent.com/dejavu-fonts/dejavu-fonts/master/ttf/DejaVuSans.ttf');
+        if (fontResp.ok) {
+          const fontBuf = Buffer.from(await fontResp.arrayBuffer());
+          const fontBase64 = fontBuf.toString('base64');
+          fontCss = `@font-face { font-family: "DejaVuEmbed"; src: url(data:font/ttf;base64,${fontBase64}) format('truetype'); font-weight: 400; font-style: normal; }`;
+        }
+      } catch {}
+
       const svg = `
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
   <defs>
     <style>
-      .title { font: 700 28px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill: #000; }
-      .yl { font: 700 18px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill: #000; }
-      .xl { font: 700 14px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill: #000; }
+      ${fontCss}
+      .title { font: 700 28px DejaVuEmbed, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill: #000; }
+      .yl { font: 700 18px DejaVuEmbed, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill: #000; }
+      .xl { font: 700 14px DejaVuEmbed, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill: #000; }
     </style>
   </defs>
   <text x="${width/2}" y="40" text-anchor="middle" class="title">Bitcoin MVRV - Últimos 180 dias</text>
