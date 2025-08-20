@@ -86,8 +86,7 @@ export class ChartService {
       Logger.info('Chart generated successfully with Resvg');
       return Buffer.from(png);
     } catch (error) {
-      if (browser) await browser.close();
-      Logger.error('Failed to generate chart with Puppeteer', {
+      Logger.error('Failed to generate chart with Resvg', {
         error: error instanceof Error ? error.message : 'Unknown error'
       });
       throw error;
