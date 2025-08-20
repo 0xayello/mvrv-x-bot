@@ -94,11 +94,12 @@ export class ChartService {
 
       // Usar puppeteer-core + @sparticuz/chromium (compatível com Vercel)
       const executablePath = await chromium.executablePath();
+      const headlessFlag = typeof chromium.headless === 'boolean' ? chromium.headless : true;
       browser = await puppeteer.launch({
         args: chromium.args,
         defaultViewport: { width, height, deviceScaleFactor: 2 },
         executablePath,
-        headless: chromium.headless
+        headless: headlessFlag
       });
       
       const page = await browser.newPage();
