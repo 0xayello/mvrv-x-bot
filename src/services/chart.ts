@@ -51,6 +51,8 @@ export class ChartService {
         }
       }
 
+      // Render chart in a hosted HTML page and take a screenshot via Vercel OG-like capture API
+      // Fallback if direct SVG -> PNG ever fails
       const svg = `
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
   <defs>
@@ -81,10 +83,61 @@ export class ChartService {
   ${xLabels.map(label => `<text class="xl" x="${label.x}" y="${chartArea.bottom + 25}" text-anchor="middle">${label.text}</text>`).join('')}
 </svg>`;
 
-      const resvg = new Resvg(svg, { fitTo: { mode: 'original' } });
-      const png = resvg.render().asPng();
-      Logger.info('Chart generated successfully with Resvg');
-      return Buffer.from(png);
+      // Primeiro, tentamos SVG -> PNG localmente (rápido, sem dependências externas)
+      try {
+        const resvg = new Resvg(svg, { fitTo: { mode: 'original' } });
+        const png = resvg.render().asPng();
+        Logger.info('Chart generated successfully with Resvg');
+        return Buffer.from(png);
+      } catch (e) {
+        Logger.warn('Resvg failed, will fallback to remote screenshot provider', { error: e instanceof Error ? e.message : String(e) });
+      }
+
+      // Fallback: renderiza via a página /chart e captura com um provider externo (Urlbox/ScreenshotOne)
+      const projectUrl = process.env.PUBLIC_BASE_URL || process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '';
+      if (!projectUrl) {
+        throw new Error('Missing PUBLIC_BASE_URL or VERCEL_URL for remote screenshot fallback');
+      }
+      const payload = Buffer.from(JSON.stringify({ times: data.times, values: data.values })).toString('base64');
+      const target = `${projectUrl}/chart?d=${encodeURIComponent(payload)}`;
+
+      const provider = process.env.SCREENSHOT_PROVIDER || 'urlbox';
+      let screenshotUrl = '';
+      if (provider === 'urlbox') {
+        const key = process.env.URLBOX_API_KEY; // sk_...
+        if (!key) throw new Error('Missing URLBOX_API_KEY');
+        const qs = new URLSearchParams({
+          url: target,
+          width: '1200',
+          height: '675',
+          deviceScaleFactor: '2',
+          format: 'png',
+          fresh: 'true'
+        });
+        screenshotUrl = `https://api.urlbox.io/v1/${key}/png?${qs.toString()}`;
+      } else if (provider === 'screenshotone') {
+        const key = process.env.SCREENSHOTONE_KEY;
+        if (!key) throw new Error('Missing SCREENSHOTONE_KEY');
+        const qs = new URLSearchParams({
+          access_key: key,
+          url: target,
+          viewport_width: '1200',
+          viewport_height: '675',
+          full_page: 'false',
+          format: 'png',
+          block_ads: 'true'
+        });
+        screenshotUrl = `https://api.screenshotone.com/take?${qs.toString()}`;
+      } else {
+        throw new Error('Unsupported SCREENSHOT_PROVIDER');
+      }
+
+      const resp = await fetch(screenshotUrl);
+      if (!resp.ok) {
+        throw new Error(`Screenshot provider failed: ${resp.status} ${await resp.text()}`);
+      }
+      const arrayBuffer = await resp.arrayBuffer();
+      return Buffer.from(arrayBuffer);
     } catch (error) {
       Logger.error('Failed to generate chart with Resvg', {
         error: error instanceof Error ? error.message : 'Unknown error'
