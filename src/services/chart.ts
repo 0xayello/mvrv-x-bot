@@ -130,111 +130,60 @@ export class ChartService {
         ctx.stroke();
       }
       
-      // 6. DIAGNÓSTICO E RENDERIZAÇÃO DE TEXTO COM MÚLTIPLOS FALLBACKS
-      Logger.info('=== DIAGNÓSTICO DE TEXTO ===');
-      Logger.info('Fonte registrada:', { fontFamily, hasFont: GlobalFonts.has(fontFamily) });
+      // 6. Renderização de texto final (sem fontes customizadas, usando apenas sistema)
+      // O Canvas funciona (vimos a marca vermelha), então o problema é especificamente nas fontes
       
-      // Resetar transformações e alpha
+      // Resetar transformações
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'source-over';
       
-      // Teste múltiplas estratégias de renderização
-      const textStrategies = [
-        { name: 'Estratégia 1: Fonte registrada + stroke + fill', font: `bold 24px "${fontFamily}"`, useStroke: true },
-        { name: 'Estratégia 2: Arial fallback + stroke + fill', font: 'bold 24px "Arial"', useStroke: true },
-        { name: 'Estratégia 3: Sans-serif + stroke + fill', font: 'bold 24px sans-serif', useStroke: true },
-        { name: 'Estratégia 4: Fonte registrada só fill', font: `bold 24px "${fontFamily}"`, useStroke: false },
-        { name: 'Estratégia 5: Arial só fill', font: 'bold 24px "Arial"', useStroke: false }
-      ];
-      
-      for (let strategyIndex = 0; strategyIndex < textStrategies.length; strategyIndex++) {
-        const strategy = textStrategies[strategyIndex];
-        Logger.info(`Testando ${strategy.name}`);
-        
-        try {
-          ctx.save();
-          
-          // Configurar estilo base
-          ctx.font = strategy.font;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'top';
-          
-          // Título principal com múltiplas tentativas
-          const titleY = 20 + (strategyIndex * 25); // Espaçamento vertical para ver todas as tentativas
-          const titleText = `TESTE ${strategyIndex + 1}: Bitcoin MVRV - Últimos 180 dias`;
-          
-          if (strategy.useStroke) {
-            // Com contorno branco
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 4;
-            ctx.fillStyle = '#000000';
-            ctx.strokeText(titleText, width / 2, titleY);
-            ctx.fillText(titleText, width / 2, titleY);
-          } else {
-            // Só preenchimento preto
-            ctx.fillStyle = '#000000';
-            ctx.fillText(titleText, width / 2, titleY);
-          }
-          
-          Logger.info(`${strategy.name} executada`);
-          ctx.restore();
-        } catch (e) {
-          Logger.error(`Falha em ${strategy.name}:`, e);
-          ctx.restore();
-        }
-      }
-      
-      // Desenhar também rótulos de eixos com a melhor estratégia
-      try {
-        ctx.save();
-        ctx.font = 'bold 16px sans-serif'; // Usar sans-serif como mais confiável
-        ctx.fillStyle = '#000000';
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2;
-        
-        // Rótulos do eixo Y
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'middle';
-        for (let i = 0; i <= 4; i++) {
-          const y = getY(i);
-          const text = i.toString();
-          ctx.strokeText(text, chartArea.left - 15, y);
-          ctx.fillText(text, chartArea.left - 15, y);
-        }
-        
-        // Rótulos do eixo X
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'top';
-        for (let i = 0; i < data.times.length; i += Math.ceil(data.times.length / 6)) {
-          if (i < data.times.length) {
-            const date = new Date(data.times[i]);
-            const x = chartArea.left + (i / (data.values.length - 1)) * chartArea.width;
-            const text = format(date, 'dd/MM');
-            ctx.strokeText(text, x, chartArea.bottom + 15);
-            ctx.fillText(text, x, chartArea.bottom + 15);
-          }
-        }
-        
-        Logger.info('Rótulos de eixos renderizados');
-        ctx.restore();
-      } catch (e) {
-        Logger.error('Falha nos rótulos dos eixos:', e);
-        ctx.restore();
-      }
-      
-      // Desenhar um retângulo de teste para verificar se o canvas está funcionando
+      // Usar apenas fontes do sistema que garantidamente existem
       ctx.save();
-      ctx.fillStyle = '#ff0000';
-      ctx.fillRect(10, 10, 100, 20);
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 14px sans-serif';
-      ctx.textAlign = 'left';
+      
+      // Título principal - APENAS sans-serif para garantir funcionamento
+      ctx.fillStyle = '#000000';
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 3;
+      ctx.font = 'bold 28px sans-serif'; // Aumentei tamanho e uso apenas sans-serif
+      ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
-      ctx.fillText('TESTE CANVAS', 15, 15);
+      
+      const title = 'Bitcoin MVRV - Últimos 180 dias';
+      ctx.strokeText(title, width / 2, 30);
+      ctx.fillText(title, width / 2, 30);
+      
+      // Rótulos do eixo Y
+      ctx.font = 'bold 18px sans-serif';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.lineWidth = 2;
+      
+      for (let i = 0; i <= 4; i++) {
+        const y = getY(i);
+        const text = i.toString();
+        ctx.strokeText(text, chartArea.left - 20, y);
+        ctx.fillText(text, chartArea.left - 20, y);
+      }
+      
+      // Rótulos do eixo X  
+      ctx.font = 'bold 14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      
+      for (let i = 0; i < data.times.length; i += Math.ceil(data.times.length / 6)) {
+        if (i < data.times.length) {
+          const date = new Date(data.times[i]);
+          const x = chartArea.left + (i / (data.values.length - 1)) * chartArea.width;
+          const text = format(date, 'dd/MM');
+          ctx.strokeText(text, x, chartArea.bottom + 20);
+          ctx.fillText(text, x, chartArea.bottom + 20);
+        }
+      }
+      
       ctx.restore();
       
-      Logger.info('=== FIM DO DIAGNÓSTICO ===');
+      Logger.info('Texto renderizado com sans-serif + stroke + fill');
       
       ctx.restore();
 
