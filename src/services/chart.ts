@@ -95,7 +95,63 @@ export class ChartService {
   ${xLabels.map(label => `<text class="xl" x="${label.x}" y="${chartArea.bottom + 25}" text-anchor="middle">${label.text}</text>`).join('')}
 </svg>`;
 
-      // Primeiro, tentamos SVG -> PNG localmente (rápido, sem dependências externas)
+      // Caminho A (recomendado pela comunidade): QuickChart (Chart.js SaaS)
+      try {
+        const labels = data.times.map((t) => {
+          const d = new Date(t);
+          return d.getDate() === 1 ? `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}` : '';
+        });
+        const config = {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [
+              { label: 'MVRV', data: data.values, borderColor: 'rgb(0,150,255)', borderWidth: 3, pointRadius: 0, tension: 0.35, order: 10, fill: false },
+              { label: 'Red', data: data.values.map(() => 4), backgroundColor: 'rgba(255,0,0,0.2)', borderColor: 'transparent', fill: true, order: 1 },
+              { label: 'Orange', data: data.values.map(() => 3.5), backgroundColor: 'rgba(255,140,0,0.2)', borderColor: 'transparent', fill: true, order: 2 },
+              { label: 'Yellow', data: data.values.map(() => 3.0), backgroundColor: 'rgba(255,255,0,0.25)', borderColor: 'transparent', fill: true, order: 3 },
+              { label: 'Green', data: data.values.map(() => 1.0), backgroundColor: 'rgba(0,255,0,0.2)', borderColor: 'transparent', fill: true, order: 4 }
+            ]
+          },
+          options: {
+            responsive: false,
+            animation: false,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              title: { display: true, text: 'Bitcoin MVRV - Últimos 180 dias', color: '#000', font: { size: 24, weight: 'bold' }, padding: 20 }
+            },
+            layout: { padding: { left: 60, right: 60, top: 60, bottom: 50 } },
+            scales: {
+              y: { beginAtZero: true, min: 0, max: 4.5, grid: { color: 'rgba(0,0,0,0.1)' }, ticks: { color: '#000', font: { weight: 'bold' } } },
+              x: { grid: { display: false }, ticks: { color: '#000', font: { size: 12, weight: 'bold' } } }
+            }
+          }
+        };
+
+        const qcBody = {
+          width,
+          height,
+          format: 'png',
+          backgroundColor: 'white',
+          version: '4.4.1',
+          chart: config
+        } as any;
+
+        const qcResp = await fetch('https://quickchart.io/chart', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(qcBody)
+        });
+        if (!qcResp.ok) throw new Error(`QuickChart failed: ${qcResp.status}`);
+        const qcArray = await qcResp.arrayBuffer();
+        Logger.info('Chart generated successfully with QuickChart');
+        return Buffer.from(qcArray);
+      } catch (e) {
+        Logger.warn('QuickChart failed, trying local Resvg', { error: e instanceof Error ? e.message : String(e) });
+      }
+
+      // Caminho B: SVG -> PNG localmente (rápido, sem dependências externas)
       try {
         const resvg = new Resvg(svg, { fitTo: { mode: 'original' } });
         const png = resvg.render().asPng();
