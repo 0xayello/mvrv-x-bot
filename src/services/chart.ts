@@ -78,7 +78,7 @@ export class ChartService {
   <!-- Fundo cinza neutro -->
   <rect x="0" y="0" width="${width}" height="${height}" fill="#e9ecef" />
   
-  <text x="${width/2}" y="50" text-anchor="middle" class="title">Bitcoin MVRV - Últimos 180 dias</text>
+  <text x="${width/2}" y="50" text-anchor="middle" class="title">Bitcoin MVRV - Últimos 5 anos</text>
 
   <!-- Zonas com cores corrigidas (gradiente verde->vermelho) -->
   <rect x="${chartArea.left}" y="${getY(1.0)}" width="${chartArea.width}" height="${chartArea.bottom - getY(1.0)}" fill="rgba(40,167,69,0.25)" />
@@ -126,7 +126,7 @@ export class ChartService {
           maintainAspectRatio: false,
           plugins: {
               legend: { display: false },
-              title: { display: true, text: 'Bitcoin MVRV - Últimos 180 dias', color: '#000', font: { size: 24, weight: 'bold' }, padding: { top: 20, bottom: 18 } }
+              title: { display: true, text: 'Bitcoin MVRV - Últimos 5 anos', color: '#000', font: { size: 24, weight: 'bold' }, padding: { top: 20, bottom: 18 } }
             },
             layout: { padding: { left: 60, right: 60, top: 40, bottom: 50 } },
           scales: {
@@ -136,88 +136,88 @@ export class ChartService {
           }
         };
 
-        const qcBody = {
-          width,
-          height,
-          format: 'png',
-          backgroundColor: '#e9ecef',
-          version: '4.4.1',
-          chart: config
-        } as any;
+      const qcBody = {
+        width,
+        height,
+        format: 'png',
+        backgroundColor: '#e9ecef',
+        version: '4.4.1',
+        chart: config
+      } as any;
 
-        const qcResp = await fetch('https://quickchart.io/chart', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(qcBody)
-        });
-        if (!qcResp.ok) throw new Error(`QuickChart failed: ${qcResp.status}`);
-        const qcArray = await qcResp.arrayBuffer();
-        Logger.info('Chart generated successfully with QuickChart');
-        return Buffer.from(qcArray);
-      } catch (e) {
-        Logger.warn('QuickChart failed, trying local Resvg', { error: e instanceof Error ? e.message : String(e) });
-      }
-
-      // Caminho B: SVG -> PNG localmente (rápido, sem dependências externas)
-      try {
-        const resvg = new Resvg(svg, { fitTo: { mode: 'original' } });
-        const png = resvg.render().asPng();
-        Logger.info('Chart generated successfully with Resvg');
-        return Buffer.from(png);
-      } catch (e) {
-        Logger.warn('Resvg failed, will fallback to remote screenshot provider', { error: e instanceof Error ? e.message : String(e) });
-      }
-
-      // Fallback: renderiza via a página /chart e captura com um provider externo (Urlbox/ScreenshotOne)
-      const projectUrl = process.env.PUBLIC_BASE_URL || process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '';
-      if (!projectUrl) {
-        throw new Error('Missing PUBLIC_BASE_URL or VERCEL_URL for remote screenshot fallback');
-      }
-      const payload = Buffer.from(JSON.stringify({ times: data.times, values: data.values })).toString('base64');
-      const target = `${projectUrl}/chart?d=${encodeURIComponent(payload)}`;
-
-      const provider = process.env.SCREENSHOT_PROVIDER || 'urlbox';
-      let screenshotUrl = '';
-      if (provider === 'urlbox') {
-        const key = process.env.URLBOX_API_KEY; // sk_...
-        if (!key) throw new Error('Missing URLBOX_API_KEY');
-        const qs = new URLSearchParams({
-          url: target,
-          width: '1200',
-          height: '675',
-          deviceScaleFactor: '2',
-          format: 'png',
-          fresh: 'true'
-        });
-        screenshotUrl = `https://api.urlbox.io/v1/${key}/png?${qs.toString()}`;
-      } else if (provider === 'screenshotone') {
-        const key = process.env.SCREENSHOTONE_KEY;
-        if (!key) throw new Error('Missing SCREENSHOTONE_KEY');
-        const qs = new URLSearchParams({
-          access_key: key,
-          url: target,
-          viewport_width: '1200',
-          viewport_height: '675',
-          full_page: 'false',
-          format: 'png',
-          block_ads: 'true'
-        });
-        screenshotUrl = `https://api.screenshotone.com/take?${qs.toString()}`;
-      } else {
-        throw new Error('Unsupported SCREENSHOT_PROVIDER');
-      }
-
-      const resp = await fetch(screenshotUrl);
-      if (!resp.ok) {
-        throw new Error(`Screenshot provider failed: ${resp.status} ${await resp.text()}`);
-      }
-      const arrayBuffer = await resp.arrayBuffer();
-      return Buffer.from(arrayBuffer);
-    } catch (error) {
-      Logger.error('Failed to generate chart with Resvg', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      const qcResp = await fetch('https://quickchart.io/chart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(qcBody)
       });
-      throw error;
+      if (!qcResp.ok) throw new Error(`QuickChart failed: ${qcResp.status}`);
+      const qcArray = await qcResp.arrayBuffer();
+      Logger.info('Chart generated successfully with QuickChart');
+      return Buffer.from(qcArray);
+    } catch (e) {
+      Logger.warn('QuickChart failed, trying local Resvg', { error: e instanceof Error ? e.message : String(e) });
     }
+
+    // Caminho B: SVG -> PNG localmente (rápido, sem dependências externas)
+    try {
+      const resvg = new Resvg(svg, { fitTo: { mode: 'original' } });
+      const png = resvg.render().asPng();
+      Logger.info('Chart generated successfully with Resvg');
+      return Buffer.from(png);
+    } catch (e) {
+      Logger.warn('Resvg failed, will fallback to remote screenshot provider', { error: e instanceof Error ? e.message : String(e) });
+    }
+
+    // Fallback: renderiza via a página /chart e captura com um provider externo (Urlbox/ScreenshotOne)
+    const projectUrl = process.env.PUBLIC_BASE_URL || process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '';
+    if (!projectUrl) {
+      throw new Error('Missing PUBLIC_BASE_URL or VERCEL_URL for remote screenshot fallback');
+    }
+    const payload = Buffer.from(JSON.stringify({ times: data.times, values: data.values })).toString('base64');
+    const target = `${projectUrl}/chart?d=${encodeURIComponent(payload)}`;
+
+    const provider = process.env.SCREENSHOT_PROVIDER || 'urlbox';
+    let screenshotUrl = '';
+    if (provider === 'urlbox') {
+      const key = process.env.URLBOX_API_KEY; // sk_...
+      if (!key) throw new Error('Missing URLBOX_API_KEY');
+      const qs = new URLSearchParams({
+        url: target,
+        width: '1200',
+        height: '675',
+        deviceScaleFactor: '2',
+        format: 'png',
+        fresh: 'true'
+      });
+      screenshotUrl = `https://api.urlbox.io/v1/${key}/png?${qs.toString()}`;
+    } else if (provider === 'screenshotone') {
+      const key = process.env.SCREENSHOTONE_KEY;
+      if (!key) throw new Error('Missing SCREENSHOTONE_KEY');
+      const qs = new URLSearchParams({
+        access_key: key,
+        url: target,
+        viewport_width: '1200',
+        viewport_height: '675',
+        full_page: 'false',
+        format: 'png',
+        block_ads: 'true'
+      });
+      screenshotUrl = `https://api.screenshotone.com/take?${qs.toString()}`;
+    } else {
+      throw new Error('Unsupported SCREENSHOT_PROVIDER');
+    }
+
+    const resp = await fetch(screenshotUrl);
+    if (!resp.ok) {
+      throw new Error(`Screenshot provider failed: ${resp.status} ${await resp.text()}`);
+    }
+    const arrayBuffer = await resp.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+  } catch (error) {
+    Logger.error('Failed to generate chart with Resvg', {
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+    throw error;
   }
+ }
 } 

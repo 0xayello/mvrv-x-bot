@@ -84,7 +84,7 @@ export default function ChartPage() {
             ticks: { display: false }
           }
         },
-        plugins: { legend: { display: false }, title: { display: true, text: 'Bitcoin MVRV - Últimos 180 dias', color: '#000', font: { size: 24, weight: 'bold' } } }
+        plugins: { legend: { display: false }, title: { display: true, text: 'Bitcoin MVRV - Últimos 5 anos', color: '#000', font: { size: 24, weight: 'bold' } } }
       }
     });
 
