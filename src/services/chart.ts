@@ -18,7 +18,6 @@ export class ChartService {
         lastDate: data.times[data.times.length - 1]
       });
 
-      // Preparar dados para o gráfico SVG
       const width = 1200;
       const height = 675;
       const padding = { left: 80, right: 40, top: 80, bottom: 60 };
@@ -36,12 +35,10 @@ export class ChartService {
       const getY = (value: number) => chartArea.bottom - ((value - yMin) / (yMax - yMin)) * chartArea.height;
       const getX = (index: number) => chartArea.left + (index / (data.values.length - 1)) * chartArea.width;
       
-      // Gerar pontos da linha MVRV
       const linePoints = data.values.map((value, i) => 
         `${getX(i)},${getY(Math.max(yMin, Math.min(yMax, value)))}`
       ).join(' ');
       
-      // Gerar rótulos do eixo X
       const xLabels = [] as { x: number; text: string }[];
       for (let i = 0; i < data.times.length; i += Math.ceil(data.times.length / 6)) {
         if (i < data.times.length) {
@@ -50,13 +47,13 @@ export class ChartService {
         }
       }
 
-      // Embute fonte local para garantir render de texto no Resvg, sem fetch externo
+      // Fonte local embutida: nome único e consistente
       let fontCss = '';
       try {
         const fontPath = path.join(process.cwd(), 'assets', 'fonts', 'DejaVuSans.ttf');
         const fontBuf = fs.readFileSync(fontPath);
         const fontBase64 = fontBuf.toString('base64');
-        fontCss = `@font-face { font-family: "DejaVuEmbed"; src: url(data:font/ttf;base64,${fontBase64}) format('truetype'); font-weight: 400; font-style: normal; }`;
+        fontCss = `@font-face { font-family: 'DejaVuSVG'; src: url(data:font/ttf;base64,${fontBase64}) format('truetype'); font-style: normal; font-weight: 400; }`;
       } catch (e) {
         Logger.warn('Failed to embed local font, fallback to system stack', { error: e instanceof Error ? e.message : String(e) });
       }
@@ -66,44 +63,36 @@ export class ChartService {
   <defs>
     <style>
       ${fontCss}
-      .title { font: 700 24px DejaVuEmbed, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill: #000; }
-      .yl { font: 700 18px DejaVuEmbed, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill: #000; }
-      .xl { font: 700 14px DejaVuEmbed, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill: #000; }
-      .ol { font: 700 16px DejaVuEmbed, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; paint-order: stroke fill; }
+      .title { font-family: 'DejaVuSVG'; font-weight: 700; font-size: 24px; fill: #000; }
+      .yl { font-family: 'DejaVuSVG'; font-weight: 700; font-size: 18px; fill: #000; }
+      .xl { font-family: 'DejaVuSVG'; font-weight: 700; font-size: 14px; fill: #000; }
+      .ol { font-family: 'DejaVuSVG'; font-weight: 700; font-size: 16px; paint-order: stroke fill; }
     </style>
   </defs>
   
-  <!-- Fundo cinza neutro -->
   <rect x="0" y="0" width="${width}" height="${height}" fill="#e9ecef" />
   
   <text x="${width/2}" y="50" text-anchor="middle" class="title">Bitcoin MVRV - Últimos 5 anos</text>
 
-  <!-- Zonas com cores corrigidas (gradiente verde->vermelho) -->
   <rect x="${chartArea.left}" y="${getY(1.0)}" width="${chartArea.width}" height="${chartArea.bottom - getY(1.0)}" fill="rgba(40,167,69,0.25)" />
   <rect x="${chartArea.left}" y="${getY(3.0)}" width="${chartArea.width}" height="${getY(1.0) - getY(3.0)}" fill="rgba(255,193,7,0.20)" />
   <rect x="${chartArea.left}" y="${getY(3.5)}" width="${chartArea.width}" height="${getY(3.0) - getY(3.5)}" fill="rgba(255,102,0,0.22)" />
   <rect x="${chartArea.left}" y="${chartArea.top}" width="${chartArea.width}" height="${getY(3.5) - chartArea.top}" fill="rgba(220,53,69,0.25)" />
 
-  <!-- Grade Y -->
   ${[0,1,2,3,4].map(i => `<line x1="${chartArea.left}" y1="${getY(i)}" x2="${chartArea.right}" y2="${getY(i)}" stroke="rgba(0,0,0,0.1)" stroke-width="1" />`).join('')}
 
-  <!-- Linha MVRV -->
   <polyline points="${linePoints}" fill="none" stroke="rgb(0,150,255)" stroke-width="3" />
 
-  <!-- Rótulos Y -->
   ${[0,1,2,3,4].map(i => `<text class="yl" x="${chartArea.left - 20}" y="${getY(i)+6}" text-anchor="end">${i}</text>`).join('')}
 
-  <!-- Rótulos X -->
   ${xLabels.map(label => `<text class="xl" x="${label.x}" y="${chartArea.bottom + 25}" text-anchor="middle">${label.text}</text>`).join('')}
 
-  <!-- Labels das zonas (overlay via SVG) -->
   <text class="ol" x="${chartArea.left + 10}" y="${getY(0.5)}" stroke="rgba(255,255,255,0.95)" stroke-width="4" fill="#000">zona de compra</text>
   <text class="ol" x="${chartArea.left + 10}" y="${getY(2.0)}" stroke="rgba(255,255,255,0.95)" stroke-width="4" fill="#000">neutro</text>
   <text class="ol" x="${chartArea.left + 10}" y="${getY(3.25)}" stroke="rgba(255,255,255,0.95)" stroke-width="4" fill="#000">alto</text>
   <text class="ol" x="${chartArea.left + 10}" y="${getY(3.75)}" stroke="rgba(255,255,255,0.95)" stroke-width="4" fill="#000">alarmante</text>
 </svg>`;
 
-      // QuickChart: downsample para <= 1000 pontos e priorizar render com textos
       try {
         const maxPoints = 1000;
         const factor = Math.max(1, Math.ceil(data.values.length / maxPoints));
@@ -148,7 +137,6 @@ export class ChartService {
         Logger.warn('QuickChart failed, trying local Resvg', { error: e instanceof Error ? e.message : String(e) });
       }
 
-      // Caminho B: SVG -> PNG localmente (rápido, sem dependências externas)
       try {
         const resvg = new Resvg(svg, { fitTo: { mode: 'original' } });
         const png = resvg.render().asPng();
@@ -158,7 +146,6 @@ export class ChartService {
         Logger.warn('Resvg failed, will fallback to remote screenshot provider', { error: e instanceof Error ? e.message : String(e) });
       }
 
-      // Fallback: renderiza via a página /chart e captura com um provider externo (Urlbox/ScreenshotOne)
       const projectUrl = process.env.PUBLIC_BASE_URL || process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '';
       if (!projectUrl) {
         throw new Error('Missing PUBLIC_BASE_URL or VERCEL_URL for remote screenshot fallback');
@@ -169,7 +156,7 @@ export class ChartService {
       const provider = process.env.SCREENSHOT_PROVIDER || 'urlbox';
       let screenshotUrl = '';
       if (provider === 'urlbox') {
-        const key = process.env.URLBOX_API_KEY; // sk_...
+        const key = process.env.URLBOX_API_KEY;
         if (!key) throw new Error('Missing URLBOX_API_KEY');
         const qs = new URLSearchParams({ url: target, width: '1200', height: '675', deviceScaleFactor: '2', format: 'png', fresh: 'true' });
         screenshotUrl = `https://api.urlbox.io/v1/${key}/png?${qs.toString()}`;
