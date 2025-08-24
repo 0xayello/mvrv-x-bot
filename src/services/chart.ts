@@ -47,26 +47,17 @@ export class ChartService {
         }
       }
 
-      // Fonte local embutida: nome único e consistente
-      let fontCss = '';
-      try {
-        const fontPath = path.join(process.cwd(), 'assets', 'fonts', 'DejaVuSans.ttf');
-        const fontBuf = fs.readFileSync(fontPath);
-        const fontBase64 = fontBuf.toString('base64');
-        fontCss = `@font-face { font-family: 'DejaVuSVG'; src: url(data:font/ttf;base64,${fontBase64}) format('truetype'); font-style: normal; font-weight: 400; }`;
-      } catch (e) {
-        Logger.warn('Failed to embed local font, fallback to system stack', { error: e instanceof Error ? e.message : String(e) });
-      }
+      // Nome real da família no TTF: 'DejaVu Sans'
+      const fontFamily = 'DejaVu Sans';
 
       const svg = `
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
   <defs>
     <style>
-      ${fontCss}
-      .title { font-family: 'DejaVuSVG'; font-weight: 700; font-size: 24px; fill: #000; }
-      .yl { font-family: 'DejaVuSVG'; font-weight: 700; font-size: 18px; fill: #000; }
-      .xl { font-family: 'DejaVuSVG'; font-weight: 700; font-size: 14px; fill: #000; }
-      .ol { font-family: 'DejaVuSVG'; font-weight: 700; font-size: 16px; paint-order: stroke fill; }
+      .title { font-family: '${fontFamily}'; font-weight: 700; font-size: 24px; fill: #000; }
+      .yl { font-family: '${fontFamily}'; font-weight: 700; font-size: 18px; fill: #000; }
+      .xl { font-family: '${fontFamily}'; font-weight: 700; font-size: 14px; fill: #000; }
+      .ol { font-family: '${fontFamily}'; font-weight: 700; font-size: 16px; paint-order: stroke fill; }
     </style>
   </defs>
   
@@ -138,7 +129,15 @@ export class ChartService {
       }
 
       try {
-        const resvg = new Resvg(svg, { fitTo: { mode: 'original' } });
+        const fontPath = path.join(process.cwd(), 'assets', 'fonts', 'DejaVuSans.ttf');
+        const resvg = new Resvg(svg, { 
+          fitTo: { mode: 'original' },
+          font: {
+            loadSystemFonts: false,
+            defaultFontFamily: fontFamily,
+            fontFiles: [fontPath]
+          }
+        });
         const png = resvg.render().asPng();
         Logger.info('Chart generated successfully with Resvg');
         return Buffer.from(png);
