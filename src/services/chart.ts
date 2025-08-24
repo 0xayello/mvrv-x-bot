@@ -69,6 +69,7 @@ export class ChartService {
       .title { font: 700 24px DejaVuEmbed, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill: #000; }
       .yl { font: 700 18px DejaVuEmbed, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill: #000; }
       .xl { font: 700 14px DejaVuEmbed, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill: #000; }
+      .ol { font: 700 16px DejaVuEmbed, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; paint-order: stroke fill; stroke: rgba(255,255,255,0.95); stroke-width: 4px; fill: #000; }
     </style>
   </defs>
   
@@ -94,6 +95,12 @@ export class ChartService {
 
   <!-- Rótulos X -->
   ${xLabels.map(label => `<text class="xl" x="${label.x}" y="${chartArea.bottom + 25}" text-anchor="middle">${label.text}</text>`).join('')}
+
+  <!-- Labels das zonas (overlay via SVG) -->
+  <text class="ol" x="${chartArea.left + 10}" y="${getY(0.5)}">zona de compra</text>
+  <text class="ol" x="${chartArea.left + 10}" y="${getY(2.0)}">neutro</text>
+  <text class="ol" x="${chartArea.left + 10}" y="${getY(3.25)}">alto</text>
+  <text class="ol" x="${chartArea.left + 10}" y="${getY(3.75)}">alarmante</text>
 </svg>`;
 
       // Evitar QuickChart quando há pontos demais (reduz 400/limites no serviço)
