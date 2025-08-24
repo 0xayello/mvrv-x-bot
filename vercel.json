@@ -4,7 +4,7 @@
     "schedule": "0 20 * * 3,6"
   }],
   "functions": {
-    "api/**": {
+    "src/pages/api/**": {
       "includeFiles": "assets/fonts/DejaVuSans.ttf"
     }
   }
