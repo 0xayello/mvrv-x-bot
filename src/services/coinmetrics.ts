@@ -77,7 +77,7 @@ export class CoinmetricsService {
       Logger.info('Fetching Bitcoin MVRV history from Coinmetrics');
       
       const endDate = new Date();
-      const startDate = subDays(endDate, 180);
+      const startDate = subDays(endDate, 1800);
       
       let url = `${this.BASE_URL}/timeseries/asset-metrics?` + 
         `assets=btc&metrics=CapMVRVCur&` +
