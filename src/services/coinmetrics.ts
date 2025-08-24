@@ -17,16 +17,18 @@ export class CoinmetricsService {
     try {
       Logger.info('Fetching Bitcoin MVRV from Coinmetrics');
       
-      // Get yesterday's date in YYYY-MM-DD format
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const startTime = yesterday.toISOString().split('T')[0];
+      // Buscar uma janela curta e pegar o último ponto disponível (evita dia sem dado)
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() - 1);
+      const startDate = subDays(endDate, 7);
+      
+      const url = `${this.BASE_URL}/timeseries/asset-metrics?` +
+        `assets=btc&metrics=CapMVRVCur&` +
+        `start_time=${format(startDate, 'yyyy-MM-dd')}&` +
+        `end_time=${format(endDate, 'yyyy-MM-dd')}&pretty=true&page_size=1000`;
       
       // Using CapMVRVCur as the correct metric name for MVRV ratio
-      const response = await fetch(
-        `${this.BASE_URL}/timeseries/asset-metrics?` + 
-        `assets=btc&metrics=CapMVRVCur&start_time=${startTime}&pretty=true`
-      );
+      const response = await fetch(url);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -35,18 +37,29 @@ export class CoinmetricsService {
 
       const data: CoinmetricsResponse = await response.json();
       
-      Logger.info('Coinmetrics raw response', { data });
+      Logger.info('Coinmetrics raw response (window)', { count: data.data?.length ?? 0 });
 
-      if (!data.data?.[0]?.CapMVRVCur) {
-        throw new Error('No MVRV value received');
+      const lastPoint = data.data && data.data.length > 0 ? data.data[data.data.length - 1] : undefined;
+      if (!lastPoint?.CapMVRVCur) {
+        Logger.warn('No direct MVRV value received, falling back to history');
+        const history = await this.getMVRVHistory();
+        if (!history.values.length) {
+          throw new Error('No MVRV value received');
+        }
+        const mvrv = history.values[history.values.length - 1];
+        Logger.info('Successfully fetched Bitcoin MVRV from history fallback', {
+          mvrv,
+          time: history.times[history.times.length - 1]
+        });
+        return mvrv;
       }
 
-      // Parse the MVRV string to number
-      const mvrv = parseFloat(data.data[0].CapMVRVCur);
+      // Parse the MVRV string to number do último ponto
+      const mvrv = parseFloat(lastPoint.CapMVRVCur);
 
       Logger.info('Successfully fetched Bitcoin MVRV', {
         mvrv,
-        time: data.data[0].time
+        time: lastPoint.time
       });
       
       return mvrv;
