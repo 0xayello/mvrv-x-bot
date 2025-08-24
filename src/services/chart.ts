@@ -103,51 +103,49 @@ export class ChartService {
   <text class="ol" x="${chartArea.left + 10}" y="${getY(3.75)}" stroke="rgba(255,255,255,0.95)" stroke-width="4" fill="#000">alarmante</text>
 </svg>`;
 
-      // Evitar QuickChart quando há pontos demais (reduz 400/limites no serviço)
-      if (data.values.length <= 1200) {
-        try {
-          const monthAbbr = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-          const labels = data.times.map((t) => {
-            const d = new Date(t);
-            if (d.getDate() !== 1) return '';
-            return monthAbbr[d.getMonth()];
-          });
-          const config = {
-            type: 'line',
-            data: { labels, datasets: [
-              { label: 'MVRV', data: data.values, borderColor: 'rgb(0,150,255)', borderWidth: 3, pointRadius: 0, tension: 0.35, order: 10, fill: false },
-              { label: 'Green', data: data.values.map(() => 1.0), backgroundColor: 'rgba(40,167,69,0.25)', borderColor: 'transparent', fill: 'origin', order: 1 },
-              { label: 'Yellow', data: data.values.map(() => 3.0), backgroundColor: 'rgba(255,193,7,0.20)', borderColor: 'transparent', fill: '-1', order: 2 },
-              { label: 'Orange', data: data.values.map(() => 3.5), backgroundColor: 'rgba(255,102,0,0.22)', borderColor: 'transparent', fill: '-1', order: 3 },
-              { label: 'Red', data: data.values.map(() => 4), backgroundColor: 'rgba(220,53,69,0.25)', borderColor: 'transparent', fill: '-1', order: 4 }
-            ]},
-            options: {
-              responsive: false,
-              animation: false,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { display: false },
-                title: { display: true, text: 'Bitcoin MVRV - Últimos 5 anos', color: '#000', font: { size: 24, weight: 'bold' }, padding: { top: 20, bottom: 18 } }
-              },
-              layout: { padding: { left: 60, right: 60, top: 40, bottom: 50 } },
-              scales: {
-                y: { beginAtZero: true, min: 0, max: 4, grid: { color: 'rgba(0,0,0,0.08)' }, ticks: { color: '#222', font: { weight: 'bold' }, stepSize: 0.5, callback: (v: any) => String(v).replace('.', ',') } },
-                x: { grid: { display: false }, ticks: { color: '#222', font: { size: 12, weight: 'bold' }, maxRotation: 0, minRotation: 0, autoSkip: false } }
-              }
-            }
-          } as any;
+      // QuickChart: downsample para <= 1000 pontos e priorizar render com textos
+      try {
+        const maxPoints = 1000;
+        const factor = Math.max(1, Math.ceil(data.values.length / maxPoints));
+        const sampledValues = data.values.filter((_, i) => i % factor === 0);
+        const sampledTimes = data.times.filter((_, i) => i % factor === 0);
 
-          const qcBody = { width, height, format: 'png', backgroundColor: '#e9ecef', version: '4.4.1', chart: config } as any;
-          const qcResp = await fetch('https://quickchart.io/chart', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(qcBody) });
-          if (!qcResp.ok) throw new Error(`QuickChart failed: ${qcResp.status}`);
-          const qcArray = await qcResp.arrayBuffer();
-          Logger.info('Chart generated successfully with QuickChart');
-          return Buffer.from(qcArray);
-        } catch (e) {
-          Logger.warn('QuickChart failed, trying local Resvg', { error: e instanceof Error ? e.message : String(e) });
-        }
-      } else {
-        Logger.info('Skipping QuickChart due to large dataset', { points: data.values.length });
+        const monthAbbr = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+        const labels = sampledTimes.map((t) => {
+          const d = new Date(t);
+          return d.getDate() === 1 ? monthAbbr[d.getMonth()] : '';
+        });
+
+        const config = {
+          type: 'line',
+          data: { labels, datasets: [
+            { label: 'MVRV', data: sampledValues, borderColor: 'rgb(0,150,255)', borderWidth: 3, pointRadius: 0, tension: 0.35, order: 10, fill: false },
+            { label: 'Green', data: sampledValues.map(() => 1.0), backgroundColor: 'rgba(40,167,69,0.25)', borderColor: 'transparent', fill: 'origin', order: 1 },
+            { label: 'Yellow', data: sampledValues.map(() => 3.0), backgroundColor: 'rgba(255,193,7,0.20)', borderColor: 'transparent', fill: '-1', order: 2 },
+            { label: 'Orange', data: sampledValues.map(() => 3.5), backgroundColor: 'rgba(255,102,0,0.22)', borderColor: 'transparent', fill: '-1', order: 3 },
+            { label: 'Red', data: sampledValues.map(() => 4), backgroundColor: 'rgba(220,53,69,0.25)', borderColor: 'transparent', fill: '-1', order: 4 }
+          ]},
+          options: {
+            responsive: false,
+            animation: false,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false }, title: { display: true, text: 'Bitcoin MVRV - Últimos 5 anos', color: '#000', font: { size: 24, weight: 'bold' }, padding: { top: 20, bottom: 18 } } },
+            layout: { padding: { left: 60, right: 60, top: 40, bottom: 50 } },
+            scales: {
+              y: { beginAtZero: true, min: 0, max: 4, grid: { color: 'rgba(0,0,0,0.08)' }, ticks: { color: '#222', font: { weight: 'bold' }, stepSize: 0.5, callback: (v: any) => String(v).replace('.', ',') } },
+              x: { grid: { display: false }, ticks: { color: '#222', font: { size: 12, weight: 'bold' }, maxRotation: 0, minRotation: 0, autoSkip: false } }
+            }
+          }
+        } as any;
+
+        const qcBody = { width, height, format: 'png', backgroundColor: '#e9ecef', version: '4.4.1', chart: config } as any;
+        const qcResp = await fetch('https://quickchart.io/chart', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(qcBody) });
+        if (!qcResp.ok) throw new Error(`QuickChart failed: ${qcResp.status}`);
+        const qcArray = await qcResp.arrayBuffer();
+        Logger.info('Chart generated successfully with QuickChart');
+        return Buffer.from(qcArray);
+      } catch (e) {
+        Logger.warn('QuickChart failed, trying local Resvg', { error: e instanceof Error ? e.message : String(e) });
       }
 
       // Caminho B: SVG -> PNG localmente (rápido, sem dependências externas)
