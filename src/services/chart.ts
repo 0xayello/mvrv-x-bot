@@ -69,7 +69,7 @@ export class ChartService {
       .title { font: 700 24px DejaVuEmbed, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill: #000; }
       .yl { font: 700 18px DejaVuEmbed, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill: #000; }
       .xl { font: 700 14px DejaVuEmbed, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill: #000; }
-      .ol { font: 700 16px DejaVuEmbed, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; paint-order: stroke fill; stroke: rgba(255,255,255,0.95); stroke-width: 4px; fill: #000; }
+      .ol { font: 700 16px DejaVuEmbed, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; paint-order: stroke fill; }
     </style>
   </defs>
   
@@ -84,6 +84,9 @@ export class ChartService {
   <rect x="${chartArea.left}" y="${getY(3.5)}" width="${chartArea.width}" height="${getY(3.0) - getY(3.5)}" fill="rgba(255,102,0,0.22)" />
   <rect x="${chartArea.left}" y="${chartArea.top}" width="${chartArea.width}" height="${getY(3.5) - chartArea.top}" fill="rgba(220,53,69,0.25)" />
 
+  <!-- Grade Y -->
+  ${[0,1,2,3,4].map(i => `<line x1="${chartArea.left}" y1="${getY(i)}" x2="${chartArea.right}" y2="${getY(i)}" stroke="rgba(0,0,0,0.1)" stroke-width="1" />`).join('')}
+
   <!-- Linha MVRV -->
   <polyline points="${linePoints}" fill="none" stroke="rgb(0,150,255)" stroke-width="3" />
 
@@ -94,37 +97,30 @@ export class ChartService {
   ${xLabels.map(label => `<text class="xl" x="${label.x}" y="${chartArea.bottom + 25}" text-anchor="middle">${label.text}</text>`).join('')}
 
   <!-- Labels das zonas (overlay via SVG) -->
-  <text class="ol" x="${chartArea.left + 10}" y="${getY(0.5)}">zona de compra</text>
-  <text class="ol" x="${chartArea.left + 10}" y="${getY(2.0)}">neutro</text>
-  <text class="ol" x="${chartArea.left + 10}" y="${getY(3.25)}">alto</text>
-  <text class="ol" x="${chartArea.left + 10}" y="${getY(3.75)}">alarmante</text>
+  <text class="ol" x="${chartArea.left + 10}" y="${getY(0.5)}" stroke="rgba(255,255,255,0.95)" stroke-width="4" fill="#000">zona de compra</text>
+  <text class="ol" x="${chartArea.left + 10}" y="${getY(2.0)}" stroke="rgba(255,255,255,0.95)" stroke-width="4" fill="#000">neutro</text>
+  <text class="ol" x="${chartArea.left + 10}" y="${getY(3.25)}" stroke="rgba(255,255,255,0.95)" stroke-width="4" fill="#000">alto</text>
+  <text class="ol" x="${chartArea.left + 10}" y="${getY(3.75)}" stroke="rgba(255,255,255,0.95)" stroke-width="4" fill="#000">alarmante</text>
 </svg>`;
 
-      // QuickChart: downsample para evitar erro 400 e incluir overlay via plugin
-      const maxPoints = 1000;
-      const factor = Math.max(1, Math.ceil(data.values.length / maxPoints));
-      const sampledValues = data.values.filter((_, i) => i % factor === 0);
-      const sampledTimes = data.times.filter((_, i) => i % factor === 0);
-
-      if (sampledValues.length > 0) {
+      // Evitar QuickChart quando há pontos demais (reduz 400/limites no serviço)
+      if (data.values.length <= 1200) {
         try {
           const monthAbbr = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-          const labels = sampledTimes.map((t) => { const d = new Date(t); return d.getDate() === 1 ? monthAbbr[d.getMonth()] : ''; });
-
-          const overlayFn = `function(chart){ const c=chart.ctx,a=chart.chartArea,y=chart.scales.y; if(!a||!y) return; c.save(); c.globalAlpha=1; c.textAlign='left'; c.textBaseline='middle'; c.font='700 18px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'; const x=a.left+10; const labels=[{v:0.5,t:'zona de compra'},{v:2.0,t:'neutro'},{v:3.25,t:'alto'},{v:3.75,t:'alarmante'}]; labels.forEach(({v,t})=>{ const py=y.getPixelForValue(v); c.lineWidth=4; c.strokeStyle='rgba(255,255,255,0.95)'; c.strokeText(t,x,py); c.fillStyle='#000'; c.fillText(t,x,py); }); c.restore(); }`;
-
-          const config: any = {
+          const labels = data.times.map((t) => {
+            const d = new Date(t);
+            if (d.getDate() !== 1) return '';
+            return monthAbbr[d.getMonth()];
+          });
+          const config = {
             type: 'line',
-            data: {
-              labels,
-              datasets: [
-                { label: 'MVRV', data: sampledValues, borderColor: 'rgb(0,150,255)', borderWidth: 3, pointRadius: 0, tension: 0.35, order: 10, fill: false },
-                { label: 'Green', data: sampledValues.map(() => 1.0), backgroundColor: 'rgba(40,167,69,0.25)', borderColor: 'transparent', fill: 'origin', order: 1 },
-                { label: 'Yellow', data: sampledValues.map(() => 3.0), backgroundColor: 'rgba(255,193,7,0.20)', borderColor: 'transparent', fill: '-1', order: 2 },
-                { label: 'Orange', data: sampledValues.map(() => 3.5), backgroundColor: 'rgba(255,102,0,0.22)', borderColor: 'transparent', fill: '-1', order: 3 },
-                { label: 'Red', data: sampledValues.map(() => 4), backgroundColor: 'rgba(220,53,69,0.25)', borderColor: 'transparent', fill: '-1', order: 4 }
-              ]
-            },
+            data: { labels, datasets: [
+              { label: 'MVRV', data: data.values, borderColor: 'rgb(0,150,255)', borderWidth: 3, pointRadius: 0, tension: 0.35, order: 10, fill: false },
+              { label: 'Green', data: data.values.map(() => 1.0), backgroundColor: 'rgba(40,167,69,0.25)', borderColor: 'transparent', fill: 'origin', order: 1 },
+              { label: 'Yellow', data: data.values.map(() => 3.0), backgroundColor: 'rgba(255,193,7,0.20)', borderColor: 'transparent', fill: '-1', order: 2 },
+              { label: 'Orange', data: data.values.map(() => 3.5), backgroundColor: 'rgba(255,102,0,0.22)', borderColor: 'transparent', fill: '-1', order: 3 },
+              { label: 'Red', data: data.values.map(() => 4), backgroundColor: 'rgba(220,53,69,0.25)', borderColor: 'transparent', fill: '-1', order: 4 }
+            ]},
             options: {
               responsive: false,
               animation: false,
@@ -138,9 +134,8 @@ export class ChartService {
                 y: { beginAtZero: true, min: 0, max: 4, grid: { color: 'rgba(0,0,0,0.08)' }, ticks: { color: '#222', font: { weight: 'bold' }, stepSize: 0.5, callback: (v: any) => String(v).replace('.', ',') } },
                 x: { grid: { display: false }, ticks: { color: '#222', font: { size: 12, weight: 'bold' }, maxRotation: 0, minRotation: 0, autoSkip: false } }
               }
-            },
-            plugins: [ { id: 'overlay', afterDraw: overlayFn } ]
-          };
+            }
+          } as any;
 
           const qcBody = { width, height, format: 'png', backgroundColor: '#e9ecef', version: '4.4.1', chart: config } as any;
           const qcResp = await fetch('https://quickchart.io/chart', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(qcBody) });
@@ -151,6 +146,8 @@ export class ChartService {
         } catch (e) {
           Logger.warn('QuickChart failed, trying local Resvg', { error: e instanceof Error ? e.message : String(e) });
         }
+      } else {
+        Logger.info('Skipping QuickChart due to large dataset', { points: data.values.length });
       }
 
       // Caminho B: SVG -> PNG localmente (rápido, sem dependências externas)
