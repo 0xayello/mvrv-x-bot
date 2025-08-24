@@ -84,6 +84,20 @@ export class ChartService {
   <text class="ol" x="${chartArea.left + 10}" y="${getY(3.75)}" stroke="rgba(255,255,255,0.95)" stroke-width="4" fill="#000">alarmante</text>
 </svg>`;
 
+      // Resvg-only: renderização local e retorno imediato
+      const fontPath = path.join(process.cwd(), 'assets', 'fonts', 'DejaVuSans.ttf');
+      const resvgOnly = new Resvg(svg, {
+        fitTo: { mode: 'original' },
+        font: {
+          loadSystemFonts: false,
+          defaultFontFamily: fontFamily,
+          fontFiles: [fontPath]
+        }
+      });
+      const pngOnly = resvgOnly.render().asPng();
+      Logger.info('Chart generated successfully with Resvg-only');
+      return Buffer.from(pngOnly);
+
       try {
         const maxPoints = 1000;
         const factor = Math.max(1, Math.ceil(data.values.length / maxPoints));
