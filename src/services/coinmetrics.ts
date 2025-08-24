@@ -115,6 +115,9 @@ export class CoinmetricsService {
         });
       }
 
+      // Ordenar por data crescente para garantir cronologia correta
+      allData.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+
       Logger.info('Received all Coinmetrics history data', {
         totalDataPoints: allData.length,
         firstDate: allData[0]?.time,

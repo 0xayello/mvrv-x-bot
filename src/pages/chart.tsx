@@ -45,9 +45,38 @@ export default function ChartPage() {
       }
     };
 
-    Chart.register(backgroundPlugin);
+    // Overlay com labels de zonas (stroke+fill)
+    const overlayPlugin = {
+      id: 'overlayZones',
+      afterDraw: (chart: any) => {
+        const { ctx: c, chartArea: a, scales } = chart;
+        if (!a || !scales?.y) return;
+        const y = scales.y;
+        c.save();
+        c.globalAlpha = 1;
+        c.textAlign = 'left';
+        c.textBaseline = 'middle';
+        c.font = '700 18px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+        const x = a.left + 10;
+        const labels = [
+          { v: 0.5, t: 'zona de compra' },
+          { v: 2.0, t: 'neutro' },
+          { v: 3.25, t: 'alto' },
+          { v: 3.75, t: 'alarmante' }
+        ];
+        labels.forEach(({ v, t }) => {
+          const py = y.getPixelForValue(v);
+          c.lineWidth = 4;
+          c.strokeStyle = 'rgba(255,255,255,0.95)';
+          c.strokeText(t, x, py);
+          c.fillStyle = '#000';
+          c.fillText(t, x, py);
+        });
+        c.restore();
+      }
+    };
 
-    const toY = (v: number) => v; // Chart handles scaling
+    Chart.register(backgroundPlugin, overlayPlugin);
 
     // Build gradients for zones - cores corrigidas
     const red = 'rgba(220,53,69,0.25)';
@@ -59,7 +88,7 @@ export default function ChartPage() {
     new Chart(ctx, {
       type: 'line',
       data: {
-        labels: times.map(() => ''),
+        labels: values.map(() => ''),
         datasets: [
           { label: 'MVRV', data: values, borderColor: 'rgb(0,150,255)', borderWidth: 3, pointRadius: 0, tension: 0.35, order: 10 },
           { label: 'Green', data: values.map(() => 1.0), backgroundColor: green, borderColor: 'transparent', fill: 'origin', order: 1 },
@@ -72,17 +101,8 @@ export default function ChartPage() {
         responsive: false,
         animation: false,
         scales: {
-          y: {
-            beginAtZero: true,
-            min: 0,
-            max: 4,
-            grid: { color: 'rgba(0,0,0,0.1)' },
-            ticks: { color: '#000', font: { weight: 'bold' } }
-          },
-          x: {
-            grid: { display: false },
-            ticks: { display: false }
-          }
+          y: { beginAtZero: true, min: 0, max: 4, grid: { color: 'rgba(0,0,0,0.1)' }, ticks: { color: '#000', font: { weight: 'bold' } } },
+          x: { grid: { display: false }, ticks: { display: false } }
         },
         plugins: { legend: { display: false }, title: { display: true, text: 'Bitcoin MVRV - Últimos 5 anos', color: '#000', font: { size: 24, weight: 'bold' } } }
       }
