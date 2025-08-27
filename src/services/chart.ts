@@ -47,23 +47,13 @@ export class ChartService {
         }
       }
 
-      // Nome real da família no TTF: 'DejaVu Sans'
       const fontFamily = 'DejaVu Sans';
 
       const svg = `
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-  <defs>
-    <style>
-      .title { font-family: '${fontFamily}'; font-weight: 700; font-size: 24px; fill: #000; }
-      .yl { font-family: '${fontFamily}'; font-weight: 700; font-size: 18px; fill: #000; }
-      .xl { font-family: '${fontFamily}'; font-weight: 700; font-size: 14px; fill: #000; }
-      .ol { font-family: '${fontFamily}'; font-weight: 700; font-size: 16px; paint-order: stroke fill; }
-    </style>
-  </defs>
-  
   <rect x="0" y="0" width="${width}" height="${height}" fill="#e9ecef" />
   
-  <text x="${width/2}" y="50" text-anchor="middle" class="title">Bitcoin MVRV - Últimos 5 anos</text>
+  <text x="${width/2}" y="50" text-anchor="middle" font-family="${fontFamily}" font-size="24" font-weight="400" fill="#000">Bitcoin MVRV - Últimos 5 anos</text>
 
   <rect x="${chartArea.left}" y="${getY(1.0)}" width="${chartArea.width}" height="${chartArea.bottom - getY(1.0)}" fill="rgba(40,167,69,0.25)" />
   <rect x="${chartArea.left}" y="${getY(3.0)}" width="${chartArea.width}" height="${getY(1.0) - getY(3.0)}" fill="rgba(255,193,7,0.20)" />
@@ -74,17 +64,16 @@ export class ChartService {
 
   <polyline points="${linePoints}" fill="none" stroke="rgb(0,150,255)" stroke-width="3" />
 
-  ${[0,1,2,3,4].map(i => `<text class="yl" x="${chartArea.left - 20}" y="${getY(i)+6}" text-anchor="end">${i}</text>`).join('')}
+  ${[0,1,2,3,4].map(i => `<text x="${chartArea.left - 20}" y="${getY(i)+6}" text-anchor="end" font-family="${fontFamily}" font-size="18" font-weight="400" fill="#000">${i}</text>`).join('')}
 
-  ${xLabels.map(label => `<text class="xl" x="${label.x}" y="${chartArea.bottom + 25}" text-anchor="middle">${label.text}</text>`).join('')}
+  ${xLabels.map(label => `<text x="${label.x}" y="${chartArea.bottom + 25}" text-anchor="middle" font-family="${fontFamily}" font-size="14" font-weight="400" fill="#000">${label.text}</text>`).join('')}
 
-  <text class="ol" x="${chartArea.left + 10}" y="${getY(0.5)}" stroke="rgba(255,255,255,0.95)" stroke-width="4" fill="#000">zona de compra</text>
-  <text class="ol" x="${chartArea.left + 10}" y="${getY(2.0)}" stroke="rgba(255,255,255,0.95)" stroke-width="4" fill="#000">neutro</text>
-  <text class="ol" x="${chartArea.left + 10}" y="${getY(3.25)}" stroke="rgba(255,255,255,0.95)" stroke-width="4" fill="#000">alto</text>
-  <text class="ol" x="${chartArea.left + 10}" y="${getY(3.75)}" stroke="rgba(255,255,255,0.95)" stroke-width="4" fill="#000">alarmante</text>
+  <text x="${chartArea.left + 10}" y="${getY(0.5)}" font-family="${fontFamily}" font-size="16" font-weight="400" stroke="rgba(255,255,255,0.95)" stroke-width="4" fill="#000">zona de compra</text>
+  <text x="${chartArea.left + 10}" y="${getY(2.0)}" font-family="${fontFamily}" font-size="16" font-weight="400" stroke="rgba(255,255,255,0.95)" stroke-width="4" fill="#000">neutro</text>
+  <text x="${chartArea.left + 10}" y="${getY(3.25)}" font-family="${fontFamily}" font-size="16" font-weight="400" stroke="rgba(255,255,255,0.95)" stroke-width="4" fill="#000">alto</text>
+  <text x="${chartArea.left + 10}" y="${getY(3.75)}" font-family="${fontFamily}" font-size="16" font-weight="400" stroke="rgba(255,255,255,0.95)" stroke-width="4" fill="#000">alarmante</text>
 </svg>`;
 
-      // Resvg-only: renderização local e retorno imediato
       const fontPath = path.join(process.cwd(), 'assets', 'fonts', 'DejaVuSans.ttf');
       const resvgOnly = new Resvg(svg, {
         fitTo: { mode: 'original' },
@@ -98,98 +87,7 @@ export class ChartService {
       Logger.info('Chart generated successfully with Resvg-only');
       return Buffer.from(pngOnly);
 
-      /*
-      try {
-        const maxPoints = 1000;
-        const factor = Math.max(1, Math.ceil(data.values.length / maxPoints));
-        const sampledValues = data.values.filter((_, i) => i % factor === 0);
-        const sampledTimes = data.times.filter((_, i) => i % factor === 0);
-
-        const monthAbbr = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-        const labels = sampledTimes.map((t) => {
-          const d = new Date(t);
-          return d.getDate() === 1 ? monthAbbr[d.getMonth()] : '';
-        });
-
-        const config = {
-          type: 'line',
-          data: { labels, datasets: [
-            { label: 'MVRV', data: sampledValues, borderColor: 'rgb(0,150,255)', borderWidth: 3, pointRadius: 0, tension: 0.35, order: 10, fill: false },
-            { label: 'Green', data: sampledValues.map(() => 1.0), backgroundColor: 'rgba(40,167,69,0.25)', borderColor: 'transparent', fill: 'origin', order: 1 },
-            { label: 'Yellow', data: sampledValues.map(() => 3.0), backgroundColor: 'rgba(255,193,7,0.20)', borderColor: 'transparent', fill: '-1', order: 2 },
-            { label: 'Orange', data: sampledValues.map(() => 3.5), backgroundColor: 'rgba(255,102,0,0.22)', borderColor: 'transparent', fill: '-1', order: 3 },
-            { label: 'Red', data: sampledValues.map(() => 4), backgroundColor: 'rgba(220,53,69,0.25)', borderColor: 'transparent', fill: '-1', order: 4 }
-          ]},
-          options: {
-            responsive: false,
-            animation: false,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false }, title: { display: true, text: 'Bitcoin MVRV - Últimos 5 anos', color: '#000', font: { size: 24, weight: 'bold' }, padding: { top: 20, bottom: 18 } } },
-            layout: { padding: { left: 60, right: 60, top: 40, bottom: 50 } },
-            scales: {
-              y: { beginAtZero: true, min: 0, max: 4, grid: { color: 'rgba(0,0,0,0.08)' }, ticks: { color: '#222', font: { weight: 'bold' }, stepSize: 0.5, callback: (v: any) => String(v).replace('.', ',') } },
-              x: { grid: { display: false }, ticks: { color: '#222', font: { size: 12, weight: 'bold' }, maxRotation: 0, minRotation: 0, autoSkip: false } }
-            }
-          }
-        } as any;
-
-        const qcBody = { width, height, format: 'png', backgroundColor: '#e9ecef', version: '4.4.1', chart: config } as any;
-        const qcResp = await fetch('https://quickchart.io/chart', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(qcBody) });
-        if (!qcResp.ok) throw new Error(`QuickChart failed: ${qcResp.status}`);
-        const qcArray = await qcResp.arrayBuffer();
-        Logger.info('Chart generated successfully with QuickChart');
-        return Buffer.from(qcArray);
-      } catch (e: any) {
-        Logger.warn('QuickChart failed, trying local Resvg', { error: e instanceof Error ? e.message : String(e) });
-      }
-
-      try {
-        const fontPath = path.join(process.cwd(), 'assets', 'fonts', 'DejaVuSans.ttf');
-        const resvg = new Resvg(svg, { 
-          fitTo: { mode: 'original' },
-          font: {
-            loadSystemFonts: false,
-            defaultFontFamily: fontFamily,
-            fontFiles: [fontPath]
-          }
-        });
-        const png = resvg.render().asPng();
-        Logger.info('Chart generated successfully with Resvg');
-        return Buffer.from(png);
-      } catch (e: any) {
-        Logger.warn('Resvg failed, will fallback to remote screenshot provider', { error: e instanceof Error ? e.message : String(e) });
-      }
-
-      const projectUrl = process.env.PUBLIC_BASE_URL || process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '';
-      if (!projectUrl) {
-        throw new Error('Missing PUBLIC_BASE_URL or VERCEL_URL for remote screenshot fallback');
-      }
-      const payload = Buffer.from(JSON.stringify({ times: data.times, values: data.values })).toString('base64');
-      const target = `${projectUrl}/chart?d=${encodeURIComponent(payload)}`;
-
-      const provider = process.env.SCREENSHOT_PROVIDER || 'urlbox';
-      let screenshotUrl = '';
-      if (provider === 'urlbox') {
-        const key = process.env.URLBOX_API_KEY;
-        if (!key) throw new Error('Missing URLBOX_API_KEY');
-        const qs = new URLSearchParams({ url: target, width: '1200', height: '675', deviceScaleFactor: '2', format: 'png', fresh: 'true' });
-        screenshotUrl = `https://api.urlbox.io/v1/${key}/png?${qs.toString()}`;
-      } else if (provider === 'screenshotone') {
-        const key = process.env.SCREENSHOTONE_KEY;
-        if (!key) throw new Error('Missing SCREENSHOTONE_KEY');
-        const qs = new URLSearchParams({ access_key: key, url: target, viewport_width: '1200', viewport_height: '675', full_page: 'false', format: 'png', block_ads: 'true' });
-        screenshotUrl = `https://api.screenshotone.com/take?${qs.toString()}`;
-      } else {
-        throw new Error('Unsupported SCREENSHOT_PROVIDER');
-      }
-
-      const resp = await fetch(screenshotUrl);
-      if (!resp.ok) {
-        throw new Error(`Screenshot provider failed: ${resp.status} ${await resp.text()}`);
-      }
-      const arrayBuffer = await resp.arrayBuffer();
-      return Buffer.from(arrayBuffer);
-    */
+      /* caminhos externos desativados */
     } catch (error) {
       Logger.error('Failed to generate chart with Resvg', { error: error instanceof Error ? error.message : 'Unknown error' });
       throw error;
