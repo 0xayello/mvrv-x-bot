@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { Logger } from '../utils/logger';
 import fs from 'fs';
 import path from 'path';
+import { createCanvas, GlobalFonts } from '@napi-rs/canvas';
 
 interface ChartData {
   times: string[];
@@ -84,19 +85,68 @@ export class ChartService {
   <text x="${chartArea.left + 10}" y="${getY(3.75)}" font-family="${fontFamily}" font-size="16" font-weight="400" stroke="rgba(255,255,255,0.95)" stroke-width="4" fill="#000">alarmante</text>
 </svg>`;
 
-      const resvgOnly = new Resvg(svg, {
-        fitTo: { mode: 'original' },
-        font: {
-          loadSystemFonts: false,
-          defaultFontFamily: fontFamily,
-          fontFiles: [fontPath]
-        }
-      });
-      const pngOnly = resvgOnly.render().asPng();
-      Logger.info('Chart generated successfully with Resvg-only');
-      return Buffer.from(pngOnly);
+      try {
+        const resvgOnly = new Resvg(svg, {
+          fitTo: { mode: 'original' },
+          font: { loadSystemFonts: false, defaultFontFamily: fontFamily, fontFiles: [fontPath] }
+        });
+        const pngOnly = resvgOnly.render().asPng();
+        Logger.info('Chart generated successfully with Resvg-only');
+        return Buffer.from(pngOnly);
+      } catch (e) {
+        Logger.warn('Resvg failed, fallback to Canvas', { error: e instanceof Error ? e.message : String(e) });
+      }
 
-      /* caminhos externos desativados */
+      // Fallback extremo: render manual via Canvas (@napi-rs/canvas)
+      try {
+        const canvas = createCanvas(width, height);
+        GlobalFonts.registerFromPath(fontPath, fontFamily);
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#e9ecef';
+        ctx.fillRect(0, 0, width, height);
+        // zonas
+        ctx.fillStyle = 'rgba(220,53,69,0.25)';
+        ctx.fillRect(chartArea.left, chartArea.top, chartArea.width, getY(3.5) - chartArea.top);
+        ctx.fillStyle = 'rgba(255,102,0,0.22)';
+        ctx.fillRect(chartArea.left, getY(3.5), chartArea.width, getY(3.0) - getY(3.5));
+        ctx.fillStyle = 'rgba(255,193,7,0.20)';
+        ctx.fillRect(chartArea.left, getY(3.0), chartArea.width, getY(1.0) - getY(3.0));
+        ctx.fillStyle = 'rgba(40,167,69,0.25)';
+        ctx.fillRect(chartArea.left, getY(1.0), chartArea.width, chartArea.bottom - getY(1.0));
+        // grid Y
+        ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+        ctx.lineWidth = 1;
+        for (let i=0;i<=4;i++){ ctx.beginPath(); ctx.moveTo(chartArea.left, getY(i)); ctx.lineTo(chartArea.right, getY(i)); ctx.stroke(); }
+        // linha
+        ctx.strokeStyle = 'rgb(0,150,255)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        data.values.forEach((v,i)=>{ const x=getX(i), y=getY(Math.max(yMin, Math.min(yMax, v))); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); });
+        ctx.stroke();
+        // título
+        ctx.font = '400 24px "'+fontFamily+'"';
+        ctx.fillStyle = '#000';
+        ctx.textAlign = 'center';
+        ctx.fillText('Bitcoin MVRV - Últimos 5 anos', width/2, 50);
+        // rótulos Y
+        ctx.font = '400 18px "'+fontFamily+'"';
+        ctx.textAlign = 'right';
+        for (let i=0;i<=4;i++){ ctx.fillText(String(i), chartArea.left-20, getY(i)+6); }
+        // rótulos X
+        ctx.font = '400 14px "'+fontFamily+'"';
+        ctx.textAlign = 'center';
+        xLabels.forEach(l => ctx.fillText(l.text, l.x, chartArea.bottom+25));
+        // labels zonas (stroke+fill)
+        const drawOL=(t:string,y:number)=>{ ctx.lineWidth=4; ctx.strokeStyle='rgba(255,255,255,0.95)'; ctx.strokeText(t, chartArea.left+10, y); ctx.fillStyle='#000'; ctx.fillText(t, chartArea.left+10, y); };
+        drawOL('zona de compra', getY(0.5));
+        drawOL('neutro', getY(2.0));
+        drawOL('alto', getY(3.25));
+        drawOL('alarmante', getY(3.75));
+        return canvas.toBuffer('image/png');
+      } catch (e) {
+        Logger.error('Canvas fallback failed', { error: e instanceof Error ? e.message : String(e) });
+        throw e;
+      }
     } catch (error) {
       Logger.error('Failed to generate chart with Resvg', { error: error instanceof Error ? error.message : 'Unknown error' });
       throw error;
