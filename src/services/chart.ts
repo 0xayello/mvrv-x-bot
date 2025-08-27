@@ -114,33 +114,26 @@ export class ChartService {
         const sampledTimes = data.times.filter((_, i) => i % downsampleFactor === 0);
         const sampledValues = data.values.filter((_, i) => i % downsampleFactor === 0);
         
-        // Rótulos semestrais (2x por ano): Jan e Jul de cada ano - mais limpo para 5 anos
-        const labels = [];
-        const uniqueLabels = new Set();
+        // Abordagem simplificada: criar labels baseado na posição dos dados sampledTimes
+        // Dividir os dados em ~10 segmentos e colocar labels semestrais distribuídos
+        const totalPoints = sampledTimes.length;
+        const segmentSize = Math.floor(totalPoints / 10); // ~10 labels ao longo de 5 anos
         
-        // Iterar pelos dados originais (não sampledTimes) para garantir que encontremos todos os Jan/Jul
-        for (let i = 0; i < data.times.length; i++) {
-          const d = new Date(data.times[i]);
-          const month = d.getMonth(); // 0-11
-          const year = d.getFullYear().toString().slice(-2); // últimos 2 dígitos do ano
-          
-          // Mostrar apenas Janeiro (0) e Julho (6) no dia 1
-          if (d.getDate() === 1 && [0, 6].includes(month)) {
-            const label = `${monthAbbr[month]} ${year}`;
-            if (!uniqueLabels.has(label)) {
-              uniqueLabels.add(label);
+        const labelsArray = sampledTimes.map((t, index) => {
+          // Mostrar label a cada segmento, priorizando Jan/Jul quando possível
+          if (index % segmentSize === 0 || index === totalPoints - 1) {
+            const d = new Date(t);
+            const month = d.getMonth();
+            const year = d.getFullYear().toString().slice(-2);
+            
+            // Se for Jan (0) ou Jul (6), usar esses; senão, usar o mês atual
+            if ([0, 6].includes(month)) {
+              return `${monthAbbr[month]} ${year}`;
+            } else {
+              // Forçar para o semestre mais próximo para consistência
+              const nearestSemester = month < 6 ? 0 : 6; // Jan ou Jul
+              return `${monthAbbr[nearestSemester]} ${year}`;
             }
-          }
-        }
-        
-        // Agora mapear sampledTimes para labels, preenchendo apenas os semestrais
-        const labelsArray = sampledTimes.map((t) => {
-          const d = new Date(t);
-          const month = d.getMonth();
-          const year = d.getFullYear().toString().slice(-2);
-          
-          if (d.getDate() === 1 && [0, 6].includes(month)) {
-            return `${monthAbbr[month]} ${year}`;
           }
           return '';
         });
