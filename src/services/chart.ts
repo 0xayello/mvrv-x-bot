@@ -39,14 +39,19 @@ export class ChartService {
         `${getX(i)},${getY(Math.max(yMin, Math.min(yMax, value)))}`
       ).join(' ');
       
-      // Gerar rótulos do eixo X
+      // Gerar rótulos do eixo X - trimestrais (4x por ano)
+      const monthAbbr = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
       const xLabels = [];
-      for (let i = 0; i < data.times.length; i += Math.ceil(data.times.length / 6)) {
-        if (i < data.times.length) {
-          const date = new Date(data.times[i]);
+      for (let i = 0; i < data.times.length; i++) {
+        const date = new Date(data.times[i]);
+        const month = date.getMonth();
+        const year = date.getFullYear().toString().slice(-2);
+        
+        // Mostrar apenas nos meses trimestrais (Jan, Abr, Jul, Out) e no dia 1
+        if (date.getDate() === 1 && [0, 3, 6, 9].includes(month)) {
           xLabels.push({
             x: getX(i),
-            text: format(date, 'dd/MM')
+            text: `${monthAbbr[month]} ${year}`
           });
         }
       }
@@ -109,11 +114,17 @@ export class ChartService {
         const sampledTimes = data.times.filter((_, i) => i % downsampleFactor === 0);
         const sampledValues = data.values.filter((_, i) => i % downsampleFactor === 0);
         
-        // Rótulos somente no dia 01 de cada mês, usando nome do mês abreviado
+        // Rótulos trimestrais (4x por ano): Jan, Abr, Jul, Out de cada ano
         const labels = sampledTimes.map((t) => {
           const d = new Date(t);
-          if (d.getDate() !== 1) return '';
-          return monthAbbr[d.getMonth()];
+          const month = d.getMonth(); // 0-11
+          const year = d.getFullYear().toString().slice(-2); // últimos 2 dígitos do ano
+          
+          // Mostrar apenas nos meses trimestrais (0=Jan, 3=Abr, 6=Jul, 9=Out) e no dia 1
+          if (d.getDate() === 1 && [0, 3, 6, 9].includes(month)) {
+            return `${monthAbbr[month]} ${year}`;
+          }
+          return '';
         });
         
         const config = {
