@@ -98,6 +98,7 @@ export class ChartService {
       Logger.info('Chart generated successfully with Resvg-only');
       return Buffer.from(pngOnly);
 
+      /*
       try {
         const maxPoints = 1000;
         const factor = Math.max(1, Math.ceil(data.values.length / maxPoints));
@@ -188,6 +189,7 @@ export class ChartService {
       }
       const arrayBuffer = await resp.arrayBuffer();
       return Buffer.from(arrayBuffer);
+    */
     } catch (error) {
       Logger.error('Failed to generate chart with Resvg', { error: error instanceof Error ? error.message : 'Unknown error' });
       throw error;
