@@ -39,7 +39,7 @@ export class ChartService {
         `${getX(i)},${getY(Math.max(yMin, Math.min(yMax, value)))}`
       ).join(' ');
       
-      // Gerar rótulos do eixo X - trimestrais (4x por ano)
+      // Gerar rótulos do eixo X - semestrais (2x por ano: Jan e Jul)
       const monthAbbr = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
       const xLabels = [];
       for (let i = 0; i < data.times.length; i++) {
@@ -47,8 +47,8 @@ export class ChartService {
         const month = date.getMonth();
         const year = date.getFullYear().toString().slice(-2);
         
-        // Mostrar apenas nos meses trimestrais (Jan, Abr, Jul, Out) e no dia 1
-        if (date.getDate() === 1 && [0, 3, 6, 9].includes(month)) {
+        // Mostrar apenas Janeiro (0) e Julho (6) no dia 1
+        if (date.getDate() === 1 && [0, 6].includes(month)) {
           xLabels.push({
             x: getX(i),
             text: `${monthAbbr[month]} ${year}`
@@ -114,14 +114,32 @@ export class ChartService {
         const sampledTimes = data.times.filter((_, i) => i % downsampleFactor === 0);
         const sampledValues = data.values.filter((_, i) => i % downsampleFactor === 0);
         
-        // Rótulos trimestrais (4x por ano): Jan, Abr, Jul, Out de cada ano
-        const labels = sampledTimes.map((t) => {
-          const d = new Date(t);
+        // Rótulos semestrais (2x por ano): Jan e Jul de cada ano - mais limpo para 5 anos
+        const labels = [];
+        const uniqueLabels = new Set();
+        
+        // Iterar pelos dados originais (não sampledTimes) para garantir que encontremos todos os Jan/Jul
+        for (let i = 0; i < data.times.length; i++) {
+          const d = new Date(data.times[i]);
           const month = d.getMonth(); // 0-11
           const year = d.getFullYear().toString().slice(-2); // últimos 2 dígitos do ano
           
-          // Mostrar apenas nos meses trimestrais (0=Jan, 3=Abr, 6=Jul, 9=Out) e no dia 1
-          if (d.getDate() === 1 && [0, 3, 6, 9].includes(month)) {
+          // Mostrar apenas Janeiro (0) e Julho (6) no dia 1
+          if (d.getDate() === 1 && [0, 6].includes(month)) {
+            const label = `${monthAbbr[month]} ${year}`;
+            if (!uniqueLabels.has(label)) {
+              uniqueLabels.add(label);
+            }
+          }
+        }
+        
+        // Agora mapear sampledTimes para labels, preenchendo apenas os semestrais
+        const labelsArray = sampledTimes.map((t) => {
+          const d = new Date(t);
+          const month = d.getMonth();
+          const year = d.getFullYear().toString().slice(-2);
+          
+          if (d.getDate() === 1 && [0, 6].includes(month)) {
             return `${monthAbbr[month]} ${year}`;
           }
           return '';
@@ -130,7 +148,7 @@ export class ChartService {
         const config = {
           type: 'line',
           data: {
-            labels,
+            labels: labelsArray,
             datasets: [
               { label: 'MVRV', data: sampledValues, borderColor: 'rgb(0,150,255)', borderWidth: 3, pointRadius: 0, tension: 0.35, order: 10, fill: false },
               { label: 'Green', data: sampledValues.map(() => 1.0), backgroundColor: 'rgba(40,167,69,0.25)', borderColor: 'transparent', fill: 'origin', order: 1 },
