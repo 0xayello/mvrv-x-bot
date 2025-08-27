@@ -45,10 +45,16 @@ export class ChartService {
 
       const fontPath = path.join(process.cwd(), 'assets', 'fonts', 'DejaVuSans.ttf');
       const fontFamily = 'EmbedDejaVu';
-      try { GlobalFonts.registerFromPath(fontPath, fontFamily); } catch {}
+      try {
+        const buf = fs.readFileSync(fontPath);
+        GlobalFonts.register(buf, fontFamily);
+      } catch {
+        try { GlobalFonts.registerFromPath(fontPath, fontFamily); } catch {}
+      }
 
       const canvas = createCanvas(width, height);
       const ctx = canvas.getContext('2d');
+      ctx.globalAlpha = 1;
 
       // fundo
       ctx.fillStyle = '#e9ecef';
@@ -83,17 +89,17 @@ export class ChartService {
       ctx.textBaseline = 'alphabetic';
       ctx.fillText('Bitcoin MVRV - Últimos 5 anos', width / 2, 50);
 
-      // rótulos Y
+      // rótulos Y (stroke+fill)
       ctx.font = '400 18px "' + fontFamily + '"';
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
-      for (let i = 0; i <= 4; i++) ctx.fillText(String(i), chartArea.left - 20, getY(i));
+      for (let i = 0; i <= 4; i++) { ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,0.95)'; ctx.strokeText(String(i), chartArea.left - 20, getY(i)); ctx.fillStyle = '#000'; ctx.fillText(String(i), chartArea.left - 20, getY(i)); }
 
-      // rótulos X
+      // rótulos X (stroke+fill)
       ctx.font = '400 14px "' + fontFamily + '"';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'alphabetic';
-      xLabels.forEach(l => ctx.fillText(l.text, l.x, chartArea.bottom + 25));
+      xLabels.forEach(l => { ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,0.95)'; ctx.strokeText(l.text, l.x, chartArea.bottom + 25); ctx.fillStyle = '#000'; ctx.fillText(l.text, l.x, chartArea.bottom + 25); });
 
       // labels zonas (stroke+fill)
       const drawOL = (t: string, y: number) => {
