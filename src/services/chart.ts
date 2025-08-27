@@ -51,6 +51,8 @@ export class ChartService {
       } catch {
         try { GlobalFonts.registerFromPath(fontPath, fontFamily); } catch {}
       }
+      const resolvedFamily = (GlobalFonts as any).has && (GlobalFonts as any).has(fontFamily) ? fontFamily : 'sans-serif';
+      Logger.info('Font availability', { useFamily: resolvedFamily, hasEmbedDejaVu: (GlobalFonts as any).has ? (GlobalFonts as any).has(fontFamily) : 'n/a' });
 
       const canvas = createCanvas(width, height);
       const ctx = canvas.getContext('2d');
@@ -83,20 +85,20 @@ export class ChartService {
       ctx.stroke();
 
       // título
-      ctx.font = '400 24px "' + fontFamily + '"';
+      ctx.font = '400 24px ' + resolvedFamily;
       ctx.fillStyle = '#000';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'alphabetic';
       ctx.fillText('Bitcoin MVRV - Últimos 5 anos', width / 2, 50);
 
       // rótulos Y (stroke+fill)
-      ctx.font = '400 18px "' + fontFamily + '"';
+      ctx.font = '400 18px ' + resolvedFamily;
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
       for (let i = 0; i <= 4; i++) { ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,0.95)'; ctx.strokeText(String(i), chartArea.left - 20, getY(i)); ctx.fillStyle = '#000'; ctx.fillText(String(i), chartArea.left - 20, getY(i)); }
 
       // rótulos X (stroke+fill)
-      ctx.font = '400 14px "' + fontFamily + '"';
+      ctx.font = '400 14px ' + resolvedFamily;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'alphabetic';
       xLabels.forEach(l => { ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,0.95)'; ctx.strokeText(l.text, l.x, chartArea.bottom + 25); ctx.fillStyle = '#000'; ctx.fillText(l.text, l.x, chartArea.bottom + 25); });
@@ -106,7 +108,7 @@ export class ChartService {
         ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,255,255,0.95)'; ctx.strokeText(t, chartArea.left + 10, y);
         ctx.fillStyle = '#000'; ctx.fillText(t, chartArea.left + 10, y);
       };
-      ctx.font = '400 16px "' + fontFamily + '"';
+      ctx.font = '400 16px ' + resolvedFamily;
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
       drawOL('zona de compra', getY(0.5));
