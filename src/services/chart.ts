@@ -47,10 +47,20 @@ export class ChartService {
         }
       }
 
-      const fontFamily = 'DejaVu Sans';
+      const fontPath = path.join(process.cwd(), 'assets', 'fonts', 'DejaVuSans.ttf');
+      const fontFamily = 'EmbedDejaVu';
+      let fontCss = '';
+      try {
+        const fontBuf = fs.readFileSync(fontPath);
+        const base64 = fontBuf.toString('base64');
+        fontCss = `@font-face { font-family: '${fontFamily}'; src: url(data:font/ttf;base64,${base64}) format('truetype'); font-weight: 400; font-style: normal; }`;
+      } catch {}
 
       const svg = `
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+  <defs>
+    <style>${fontCss}</style>
+  </defs>
   <rect x="0" y="0" width="${width}" height="${height}" fill="#e9ecef" />
   
   <text x="${width/2}" y="50" text-anchor="middle" font-family="${fontFamily}" font-size="24" font-weight="400" fill="#000">Bitcoin MVRV - Últimos 5 anos</text>
@@ -74,7 +84,6 @@ export class ChartService {
   <text x="${chartArea.left + 10}" y="${getY(3.75)}" font-family="${fontFamily}" font-size="16" font-weight="400" stroke="rgba(255,255,255,0.95)" stroke-width="4" fill="#000">alarmante</text>
 </svg>`;
 
-      const fontPath = path.join(process.cwd(), 'assets', 'fonts', 'DejaVuSans.ttf');
       const resvgOnly = new Resvg(svg, {
         fitTo: { mode: 'original' },
         font: {
