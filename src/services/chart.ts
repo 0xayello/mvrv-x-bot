@@ -138,7 +138,7 @@ export class ChartService {
         const qcArray = await qcResp.arrayBuffer();
         Logger.info('Chart generated successfully with QuickChart');
         return Buffer.from(qcArray);
-      } catch (e) {
+      } catch (e: any) {
         Logger.warn('QuickChart failed, trying local Resvg', { error: e instanceof Error ? e.message : String(e) });
       }
 
@@ -155,7 +155,7 @@ export class ChartService {
         const png = resvg.render().asPng();
         Logger.info('Chart generated successfully with Resvg');
         return Buffer.from(png);
-      } catch (e) {
+      } catch (e: any) {
         Logger.warn('Resvg failed, will fallback to remote screenshot provider', { error: e instanceof Error ? e.message : String(e) });
       }
 
