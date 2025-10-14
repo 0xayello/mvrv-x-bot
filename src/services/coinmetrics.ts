@@ -28,7 +28,12 @@ export class CoinmetricsService {
         `end_time=${format(endDate, 'yyyy-MM-dd')}&pretty=true&page_size=1000`;
       
       // Using CapMVRVCur as the correct metric name for MVRV ratio
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'ayello-twitter-bot/1.0 (+https://github.com/0xayello/twitter-bot.V2)',
+          'Accept': 'application/json'
+        }
+      });
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -95,7 +100,12 @@ export class CoinmetricsService {
       while (url) {
         Logger.info('Requesting Coinmetrics data', { url });
         
-        const response = await fetch(url);
+        const response = await fetch(url, {
+          headers: {
+            'User-Agent': 'ayello-twitter-bot/1.0 (+https://github.com/0xayello/twitter-bot.V2)',
+            'Accept': 'application/json'
+          }
+        });
         
         if (!response.ok) {
           const errorText = await response.text();

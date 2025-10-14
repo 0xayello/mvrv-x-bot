@@ -1,5 +1,5 @@
 {
-  "name": "twitter-bot",
+  "name": "mvrv-x-bot",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -14,16 +14,16 @@
     "@resvg/resvg-js": "^2.6.2",
     "date-fns": "^4.1.0",
     "dotenv": "^16.4.7",
-    "next": "latest",
-    "react": "latest",
-    "react-dom": "latest",
+    "next": "14.2.7",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
     "twitter-api-v2": "^1.15.2"
   },
   "devDependencies": {
     "@types/node": "^20.8.2",
     "@types/react": "^18.2.24",
     "eslint": "^8.50.0",
-    "eslint-config-next": "latest",
+    "eslint-config-next": "14.2.7",
     "ts-node": "^10.9.1",
     "typescript": "^5.2.2"
   }

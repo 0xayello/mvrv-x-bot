@@ -1,6 +1,8 @@
 import { Resvg } from '@resvg/resvg-js';
 import { format } from 'date-fns';
 import { Logger } from '../utils/logger';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 interface ChartData {
   times: string[];
@@ -56,18 +58,17 @@ export class ChartService {
         }
       }
 
-      // Render chart in a hosted HTML page and take a screenshot via Vercel OG-like capture API
-      // Fallback if direct SVG -> PNG ever fails
-      // Embed a font via data URL so Resvg always renders text
+      // Embed a local font (bundled with the function) to ensure Resvg renders text consistently
+      // Falls back silently if the file isn't available
       let fontCss = '';
       try {
-        const fontResp = await fetch('https://raw.githubusercontent.com/dejavu-fonts/dejavu-fonts/master/ttf/DejaVuSans.ttf');
-        if (fontResp.ok) {
-          const fontBuf = Buffer.from(await fontResp.arrayBuffer());
-          const fontBase64 = fontBuf.toString('base64');
-          fontCss = `@font-face { font-family: "DejaVuEmbed"; src: url(data:font/ttf;base64,${fontBase64}) format('truetype'); font-weight: 400; font-style: normal; }`;
-        }
-      } catch {}
+        const fontPath = join(process.cwd(), 'assets', 'fonts', 'DejaVuSans.ttf');
+        const fontBuf = readFileSync(fontPath);
+        const fontBase64 = fontBuf.toString('base64');
+        fontCss = `@font-face { font-family: "DejaVuEmbed"; src: url(data:font/ttf;base64,${fontBase64}) format('truetype'); font-weight: 400; font-style: normal; }`;
+      } catch {
+        // No local font available; Resvg may still render with fallback fonts
+      }
 
       const svg = `
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
@@ -199,7 +200,12 @@ export class ChartService {
       }
 
       // Fallback: renderiza via a página /chart e captura com um provider externo (Urlbox/ScreenshotOne)
-      const projectUrl = process.env.PUBLIC_BASE_URL || process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '';
+      // Corrige a resolução de URL pública: usa PUBLIC_BASE_URL se presente; senão, VERCEL_URL
+      const publicBase = process.env.PUBLIC_BASE_URL
+        ? (process.env.PUBLIC_BASE_URL.startsWith('http') ? process.env.PUBLIC_BASE_URL : `https://${process.env.PUBLIC_BASE_URL}`)
+        : undefined;
+      const vercelBase = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined;
+      const projectUrl = publicBase || vercelBase;
       if (!projectUrl) {
         throw new Error('Missing PUBLIC_BASE_URL or VERCEL_URL for remote screenshot fallback');
       }

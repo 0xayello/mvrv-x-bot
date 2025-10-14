@@ -15,7 +15,12 @@ export class CoinGeckoService {
     try {
       Logger.info('Fetching Bitcoin dominance from CoinGecko');
       
-      const response = await fetch(`${this.BASE_URL}/global`);
+      const response = await fetch(`${this.BASE_URL}/global`, {
+        headers: {
+          'User-Agent': 'ayello-twitter-bot/1.0 (+https://github.com/0xayello/twitter-bot.V2)',
+          'Accept': 'application/json'
+        }
+      });
       
       if (!response.ok) {
         const errorText = await response.text();
