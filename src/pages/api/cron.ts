@@ -48,8 +48,8 @@ export default async function handler(
     const mvrvClassification = getMVRVClassification(bitcoinMVRV);
     const message = [
       `📊 O MVRV (Market Value to Realized Value) atual é ${bitcoinMVRV.toFixed(2)} - ${mvrvClassification}.`,
-      '👉 Ele mostra quanto lucro não realizado os holders de Bitcoin têm.',
-      'Historicamente, <1.0 indica oportunidade de acumulação e >3.0 indica euforia.'
+      'Ele mostra quanto lucro não realizado os holders de Bitcoin têm.',
+      'Historicamente, <1.0 é a melhor região de compra e >3.0 de venda.'
     ].join('\n');
 
     // Post tweet with media
