@@ -62,7 +62,7 @@ async function test() {
       `📊 O MVRV (Market Value to Realized Value) atual é ${mvrv.toFixed(2)} - ${mvrvClassification}.`,
       'Ele mostra quanto lucro não realizado os holders de Bitcoin têm.',
       'Historicamente, <1.0 é a melhor região de compra e >3.0 de venda.'
-    ].join('\n');
+    ].join('\n\n');
     
     Logger.info('Attempting to post tweet with chart...', { message });
     
