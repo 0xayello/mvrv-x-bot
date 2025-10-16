@@ -58,7 +58,11 @@ async function test() {
     const twitter = new TwitterService();
     
     const mvrvClassification = getMVRVClassification(mvrv);
-    const message = `📊 O MVRV (Market Value to Realized Value) atual é ${mvrv.toFixed(2)} - ${mvrvClassification}\n\n🔬 A dominância do Bitcoin hoje está em ${dominance.toFixed(2)}%`;
+    const message = [
+      `📊 O MVRV (Market Value to Realized Value) atual é ${mvrv.toFixed(2)} - ${mvrvClassification}.`,
+      '👉 Ele mostra quanto lucro não realizado os holders de Bitcoin têm.',
+      'Historicamente, <1.0 indica oportunidade de acumulação e >3.0 indica euforia.'
+    ].join('\n');
     
     Logger.info('Attempting to post tweet with chart...', { message });
     
