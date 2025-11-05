@@ -42,8 +42,14 @@ export class ChartService {
       ).join(' ');
       
       // Gerar rótulos do eixo X - distribuídos uniformemente ao longo do período
+      // O último label sempre será o mês atual, garantindo auto-atualização
       const monthAbbr = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
       const xLabels = [];
+      
+      // Obter data atual para garantir que o último label seja sempre o mês atual
+      const currentDate = new Date();
+      const currentMonth = currentDate.getMonth();
+      const currentYear = currentDate.getFullYear().toString().slice(-2);
       
       // Queremos ~10 labels distribuídos uniformemente ao longo dos dados
       const totalPoints = data.times.length;
@@ -52,20 +58,23 @@ export class ChartService {
       
       for (let i = 0; i < numLabels; i++) {
         let index;
+        let labelText: string;
+        
         if (i === numLabels - 1) {
-          // Último label sempre usa o ponto mais recente
+          // Último label sempre usa o mês atual (auto-atualização)
           index = totalPoints - 1;
+          labelText = `${monthAbbr[currentMonth]} ${currentYear}`;
         } else {
           index = i * step;
+          const date = new Date(data.times[index]);
+          const month = date.getMonth();
+          const year = date.getFullYear().toString().slice(-2);
+          labelText = `${monthAbbr[month]} ${year}`;
         }
-        
-        const date = new Date(data.times[index]);
-        const month = date.getMonth();
-        const year = date.getFullYear().toString().slice(-2);
         
         xLabels.push({
           x: getX(index),
-          text: `${monthAbbr[month]} ${year}`
+          text: labelText
         });
       }
 
@@ -121,6 +130,11 @@ export class ChartService {
       try {
         const monthAbbr = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
         
+        // Obter data atual para garantir que o último label seja sempre o mês atual (auto-atualização)
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth();
+        const currentYear = currentDate.getFullYear().toString().slice(-2);
+        
         // DOWNSAMPLING: Para 1800 dias, pegar apenas 1 ponto a cada 10 dias para não estourar o QuickChart
         const downsampleFactor = Math.max(1, Math.floor(data.times.length / 180));
         const sampledTimes = data.times.filter((_, i) => i % downsampleFactor === 0);
@@ -134,21 +148,31 @@ export class ChartService {
         const labelsArray = sampledTimes.map((t, index) => {
           // Verificar se este índice deve ter um label
           let shouldShowLabel = false;
+          let isLastLabel = false;
           
           // Labels distribuídos uniformemente
           for (let i = 0; i < numLabels; i++) {
             const labelIndex = (i === numLabels - 1) ? totalPoints - 1 : i * step;
             if (index === labelIndex) {
               shouldShowLabel = true;
+              // Se é o último label, marca para usar o mês atual
+              if (i === numLabels - 1) {
+                isLastLabel = true;
+              }
               break;
             }
           }
           
           if (shouldShowLabel) {
-            const d = new Date(t);
-            const month = d.getMonth();
-            const year = d.getFullYear().toString().slice(-2);
-            return `${monthAbbr[month]} ${year}`;
+            if (isLastLabel) {
+              // Último label sempre usa o mês atual (auto-atualização)
+              return `${monthAbbr[currentMonth]} ${currentYear}`;
+            } else {
+              const d = new Date(t);
+              const month = d.getMonth();
+              const year = d.getFullYear().toString().slice(-2);
+              return `${monthAbbr[month]} ${year}`;
+            }
           }
           return '';
         });
