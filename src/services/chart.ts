@@ -41,21 +41,32 @@ export class ChartService {
         `${getX(i)},${getY(Math.max(yMin, Math.min(yMax, value)))}`
       ).join(' ');
       
-      // Gerar rótulos do eixo X - semestrais (2x por ano: Jan e Jul)
+      // Gerar rótulos do eixo X - distribuídos uniformemente ao longo do período
       const monthAbbr = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
       const xLabels = [];
-      for (let i = 0; i < data.times.length; i++) {
-        const date = new Date(data.times[i]);
+      
+      // Queremos ~10 labels distribuídos uniformemente ao longo dos dados
+      const totalPoints = data.times.length;
+      const numLabels = 10;
+      const step = Math.floor(totalPoints / (numLabels - 1));
+      
+      for (let i = 0; i < numLabels; i++) {
+        let index;
+        if (i === numLabels - 1) {
+          // Último label sempre usa o ponto mais recente
+          index = totalPoints - 1;
+        } else {
+          index = i * step;
+        }
+        
+        const date = new Date(data.times[index]);
         const month = date.getMonth();
         const year = date.getFullYear().toString().slice(-2);
         
-        // Mostrar apenas Janeiro (0) e Julho (6) no dia 1
-        if (date.getDate() === 1 && [0, 6].includes(month)) {
-          xLabels.push({
-            x: getX(i),
-            text: `${monthAbbr[month]} ${year}`
-          });
-        }
+        xLabels.push({
+          x: getX(index),
+          text: `${monthAbbr[month]} ${year}`
+        });
       }
 
       // Embed a local font (bundled with the function) to ensure Resvg renders text consistently
@@ -115,26 +126,29 @@ export class ChartService {
         const sampledTimes = data.times.filter((_, i) => i % downsampleFactor === 0);
         const sampledValues = data.values.filter((_, i) => i % downsampleFactor === 0);
         
-        // Abordagem simplificada: criar labels baseado na posição dos dados sampledTimes
-        // Dividir os dados em ~10 segmentos e colocar labels semestrais distribuídos
+        // Criar labels distribuídos uniformemente ao longo do período
         const totalPoints = sampledTimes.length;
-        const segmentSize = Math.floor(totalPoints / 10); // ~10 labels ao longo de 5 anos
+        const numLabels = 10;
+        const step = Math.floor(totalPoints / (numLabels - 1));
         
         const labelsArray = sampledTimes.map((t, index) => {
-          // Mostrar label a cada segmento, priorizando Jan/Jul quando possível
-          if (index % segmentSize === 0 || index === totalPoints - 1) {
+          // Verificar se este índice deve ter um label
+          let shouldShowLabel = false;
+          
+          // Labels distribuídos uniformemente
+          for (let i = 0; i < numLabels; i++) {
+            const labelIndex = (i === numLabels - 1) ? totalPoints - 1 : i * step;
+            if (index === labelIndex) {
+              shouldShowLabel = true;
+              break;
+            }
+          }
+          
+          if (shouldShowLabel) {
             const d = new Date(t);
             const month = d.getMonth();
             const year = d.getFullYear().toString().slice(-2);
-            
-            // Se for Jan (0) ou Jul (6), usar esses; senão, usar o mês atual
-            if ([0, 6].includes(month)) {
-              return `${monthAbbr[month]} ${year}`;
-            } else {
-              // Forçar para o semestre mais próximo para consistência
-              const nearestSemester = month < 6 ? 0 : 6; // Jan ou Jul
-              return `${monthAbbr[nearestSemester]} ${year}`;
-            }
+            return `${monthAbbr[month]} ${year}`;
           }
           return '';
         });
