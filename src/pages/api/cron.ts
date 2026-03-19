@@ -102,8 +102,9 @@ function generateTweetText(currentMVRV: number, previousMVRV?: number): string {
     // Neutro
     lines = [
       `📊 MVRV em ${value} — neutro.`,
-      `O lucro médio não realizado dos holders de Bitcoin está em +${pctAbs}%. Níveis moderados, o mercado opera dentro da normalidade histórica.`,
-      'Acima de 2.0 = mercado começa a aquecer.'
+      `O lucro médio não realizado dos holders de Bitcoin está em +${pctAbs}%.`,
+      'Níveis moderados, o mercado opera dentro da normalidade histórica.',
+      'MVRV < 1.0 = bom momento de compra | > 3.0 = melhor zona de venda.'
     ];
   } else if (currentMVRV < 2.5) {
     // Aquecendo
