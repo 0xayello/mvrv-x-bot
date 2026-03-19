@@ -1,73 +1,117 @@
-import { CoinGeckoService } from '../services/coingecko';
 import { CoinmetricsService } from '../services/coinmetrics';
-import { TwitterService } from '../services/twitter';
 import { ChartService } from '../services/chart';
 import { Logger } from '../utils/logger';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
 
-function getMVRVClassification(mvrv: number): string {
-  if (mvrv >= 3.5) return "alarmante";
-  if (mvrv >= 3.0) return "alto";
-  if (mvrv >= 1.0) return "neutro";
-  return "zona de compra";
+function generateTweetText(currentMVRV: number, previousMVRV?: number): string {
+  const value = currentMVRV.toFixed(2);
+  const pctRaw = (currentMVRV - 1) * 100;
+  const pctAbs = Math.abs(pctRaw).toFixed(0);
+  let lines: string[];
+
+  const pick = (...options: string[]) => options[Math.floor(Math.random() * options.length)];
+
+  if (currentMVRV < 0.8) {
+    lines = [
+      `📊 MVRV em ${value} — zona de compra forte!`,
+      `Estamos na melhor região de acumulação historicamente. Holders estão com um prejuízo médio não realizado de ${pctAbs}%. Valores nesse patamar marcaram os maiores fundos do Bitcoin. Oportunidade rara. 👀`
+    ];
+  } else if (currentMVRV < 1.0) {
+    lines = [
+      `📊 MVRV em ${value} — zona de compra! 👀`,
+      `O Bitcoin está sendo negociado abaixo do custo médio dos holders. Historicamente, essa é uma das melhores janelas de acumulação.`,
+      'Fique atento: historicamente, essa região costuma anteceder grandes movimentos de alta.'
+    ];
+  } else if (currentMVRV < 1.25) {
+    lines = [
+      `📊 MVRV em ${value} — região interessante para compra!`,
+      'Estamos próximos da região onde o preço se aproxima do custo médio dos holders.',
+      'Abaixo de 1.0 = zona de compra histórica. O mercado está perto desse patamar.'
+    ];
+  } else if (currentMVRV < 2.0) {
+    lines = [
+      `📊 MVRV em ${value} — neutro.`,
+      `O lucro médio não realizado dos holders de Bitcoin está em +${pctAbs}%. Níveis moderados, o mercado opera dentro da normalidade histórica.`,
+      'Acima de 2.0 = mercado começa a aquecer.'
+    ];
+  } else if (currentMVRV < 2.5) {
+    lines = [
+      `📊 MVRV em ${value} — mercado aquecendo.`,
+      `Holders acumulam +${pctAbs}% de lucro médio não realizado. O mercado segue saudável, mas os ganhos começam a se acumular.`,
+      'Acima de 2.5 = região de cautela.'
+    ];
+  } else if (currentMVRV < 3.0) {
+    lines = [
+      `📊 MVRV em ${value} — atenção! ⚠️`,
+      pick(
+        `Estamos em níveis historicamente associados a topos de mercado. Holders com lucros elevados tendem a realizar.`,
+        `Holders com +${pctAbs}% de lucro médio. O indicador se aproxima de níveis historicamente associados a topos.`
+      ),
+      'Momento de atenção redobrada e gestão de risco.'
+    ];
+  } else {
+    lines = [
+      `📊 MVRV em ${value} — alerta máximo!`,
+      pick(
+        `O MVRV está em patamares que historicamente antecederam as maiores correções do Bitcoin. Holders com lucros extremos. Momento crítico de gestão de risco.`,
+        `Holders com +${pctAbs}% de lucro médio não realizado. Estamos em níveis historicamente associados a topos de mercado.`
+      ),
+      'Cautela. Grandes correções partiram dessa região no passado.'
+    ];
+  }
+
+  if (previousMVRV !== undefined) {
+    const diff = currentMVRV - previousMVRV;
+    if (Math.abs(diff) >= 0.05) {
+      const arrow = diff > 0 ? '📈' : '📉';
+      lines.push(`${arrow} Variação semanal: ${previousMVRV.toFixed(2)} → ${value}`);
+    }
+  }
+
+  return lines.join('\n\n');
 }
 
 async function test() {
   try {
     Logger.info('Starting test...');
 
-    // Test CoinGecko and Coinmetrics
-    const coinGecko = new CoinGeckoService();
     const coinmetrics = new CoinmetricsService();
     const chart = new ChartService();
-    
-    // Get all data
+
     Logger.info('Fetching data...');
-    const [dominance, mvrv, mvrvHistory] = await Promise.all([
-      coinGecko.getBitcoinDominance(),
+    const [mvrv, mvrvHistory] = await Promise.all([
       coinmetrics.getBitcoinMVRV(),
       coinmetrics.getMVRVHistory()
     ]);
-    
-    if (typeof dominance !== 'number' || isNaN(dominance)) {
-      throw new Error('Invalid dominance value received');
-    }
-    
+
     if (typeof mvrv !== 'number' || isNaN(mvrv)) {
       throw new Error('Invalid MVRV value received');
     }
-    
-    Logger.info('Data fetch successful', { 
-      dominance, 
+
+    Logger.info('Data fetch successful', {
       mvrv,
-      historyPoints: mvrvHistory.values.length 
+      historyPoints: mvrvHistory.values.length
     });
 
     // Generate and save chart
     Logger.info('Generating chart...');
-    const chartImage = await chart.generateMVRVChart(mvrvHistory);
+    const chartImage = await chart.generateMVRVChart(mvrvHistory, mvrv);
     
     // Save chart locally for inspection
     const testImagePath = join(process.cwd(), 'test-chart.png');
     writeFileSync(testImagePath, chartImage);
     Logger.info('Chart saved locally for inspection', { path: testImagePath });
 
-    // Test Twitter
-    Logger.info('Initializing Twitter service...');
-    const twitter = new TwitterService();
-    
-    const mvrvClassification = getMVRVClassification(mvrv);
-    const message = [
-      `📊 O MVRV (Market Value to Realized Value) está em ${mvrv.toFixed(2)} – ${mvrvClassification}.`,
-      'Ele indica o lucro médio não realizado dos holders de Bitcoin.',
-      'Historicamente, < 1.0 sinaliza boas compras e > 3.0 zonas de venda.'
-    ].join('\n\n');
-    
-    Logger.info('Attempting to post tweet with chart...', { message });
-    
-    await twitter.postTweetWithMedia(message, chartImage);
-    Logger.info('Twitter test successful');
+    // Gerar copy dinamica
+    const prevIndex = Math.max(0, mvrvHistory.values.length - 8);
+    const previousMVRV = mvrvHistory.values[prevIndex];
+    const message = generateTweetText(mvrv, previousMVRV);
+
+    Logger.info('Generated tweet text', { message });
+
+    // Save chart only (no tweet posting) — use test-bot para postar
+    Logger.info('Test complete. Chart saved. Tweet text generated (not posted).');
 
   } catch (error) {
     Logger.error('Test failed', {

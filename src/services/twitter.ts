@@ -1,14 +1,8 @@
 import { TwitterApi } from 'twitter-api-v2';
 import { Logger } from '../utils/logger';
 
-interface UsageData {
-  [key: string]: number;
-}
-
 export class TwitterService {
   private client: TwitterApi;
-  private static MONTHLY_LIMIT = 500;
-  private static USAGE_KEY = 'twitter_api_usage';
 
   constructor() {
     // Check each environment variable
@@ -43,48 +37,9 @@ export class TwitterService {
     });
   }
 
-  private async incrementUsageCount(): Promise<number> {
-    try {
-      const now = new Date();
-      const month = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
-      
-      // In a real app, this would be stored in a database
-      // For now, we'll use localStorage if available, or memory if not
-      let usage: UsageData = {};
-      
-      if (typeof localStorage !== 'undefined') {
-        usage = JSON.parse(localStorage.getItem(TwitterService.USAGE_KEY) || '{}');
-      }
-
-      usage[month] = (usage[month] || 0) + 1;
-      
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(TwitterService.USAGE_KEY, JSON.stringify(usage));
-      }
-
-      const currentUsage = usage[month];
-      
-      Logger.info('Twitter API usage updated', {
-        month,
-        currentUsage,
-        remainingCalls: TwitterService.MONTHLY_LIMIT - currentUsage
-      });
-
-      return currentUsage;
-    } catch (error) {
-      Logger.warn('Failed to track API usage', { error });
-      return 0;
-    }
-  }
-
   async postTweet(message: string): Promise<void> {
     try {
       Logger.info('Attempting to post tweet', { message });
-      
-      const usageCount = await this.incrementUsageCount();
-      if (usageCount >= TwitterService.MONTHLY_LIMIT) {
-        Logger.warn('Monthly API limit reached', { usageCount });
-      }
 
       const response = await this.client.v2.tweet(message);
       
