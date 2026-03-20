@@ -1,7 +1,8 @@
 import { Resvg } from '@resvg/resvg-js';
 import { Logger } from '../utils/logger';
-import { readFileSync } from 'fs';
+import { writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { DEJAVU_SANS_B64 } from './font-data';
 
 interface ChartData {
   times: string[];
@@ -67,29 +68,14 @@ export class ChartService {
         xLabels.push({ x: getX(index), text: labelText });
       }
 
-      // Font embedding — try multiple paths for Vercel compatibility
-      let fontCss = '';
-      let fontPath = '';
-      const candidatePaths = [
-        join(process.cwd(), 'assets', 'fonts', 'DejaVuSans.ttf'),
-        join(__dirname, '..', '..', '..', 'assets', 'fonts', 'DejaVuSans.ttf'),
-        join(__dirname, '..', '..', 'assets', 'fonts', 'DejaVuSans.ttf'),
-        '/var/task/assets/fonts/DejaVuSans.ttf',
-      ];
-      for (const p of candidatePaths) {
-        try {
-          const buf = readFileSync(p);
-          const b64 = buf.toString('base64');
-          fontCss = `@font-face { font-family: "DejaVuEmbed"; src: url(data:font/ttf;base64,${b64}) format('truetype'); font-weight: 400; font-style: normal; }`;
-          fontPath = p;
-          Logger.info('Font loaded from', { path: p });
-          break;
-        } catch {
-          // try next path
-        }
-      }
-      if (!fontCss) {
-        Logger.warn('Font not found in any candidate path', { tried: candidatePaths });
+      // Font embedding — use Base64-embedded font (works everywhere including Vercel)
+      const fontCss = `@font-face { font-family: "DejaVuEmbed"; src: url(data:font/ttf;base64,${DEJAVU_SANS_B64}) format('truetype'); font-weight: 400; font-style: normal; }`;
+
+      // Write font to /tmp for Resvg fontFiles option
+      const tmpFontPath = '/tmp/DejaVuSans.ttf';
+      if (!existsSync(tmpFontPath)) {
+        writeFileSync(tmpFontPath, Buffer.from(DEJAVU_SANS_B64, 'base64'));
+        Logger.info('Font written to /tmp');
       }
 
       const dotX = getX(data.values.length - 1);
@@ -157,14 +143,14 @@ export class ChartService {
 
       // Caminho A (primario): Resvg local
       try {
-        const resvgOpts: any = { fitTo: { mode: 'original' } };
-        if (fontPath) {
-          resvgOpts.font = {
-            fontFiles: [fontPath],
+        const resvgOpts: any = {
+          fitTo: { mode: 'original' },
+          font: {
+            fontFiles: [tmpFontPath],
             loadSystemFonts: false,
             defaultFontFamily: 'DejaVuEmbed',
-          };
-        }
+          },
+        };
         const resvg = new Resvg(svg, resvgOpts);
         const png = resvg.render().asPng();
         Logger.info('Chart generated successfully with Resvg');
