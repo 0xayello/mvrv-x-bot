@@ -81,22 +81,22 @@ function generateTweetText(currentMVRV: number, previousMVRV?: number): string {
   if (currentMVRV < 0.8) {
     // Compra forte
     lines = [
-      `📊 MVRV em ${value} — zona de compra forte!`,
+      `📊 MVRV em ${value} — zona historicamente forte de acumulação`,
       `Estamos na melhor região de acumulação historicamente. Holders estão com um prejuízo médio não realizado de ${pctAbs}%. Valores nesse patamar marcaram os maiores fundos do Bitcoin. Oportunidade rara. 👀`
     ];
   } else if (currentMVRV < 1.0) {
     // Compra
     lines = [
-      `📊 MVRV em ${value} — zona de compra! 👀`,
+      `📊 MVRV em ${value} — zona histórica de acumulação 👀`,
       `O Bitcoin está sendo negociado abaixo do custo médio dos holders. Historicamente, essa é uma das melhores janelas de acumulação.`,
       'Fique atento: historicamente, essa região costuma anteceder grandes movimentos de alta.'
     ];
   } else if (currentMVRV < 1.25) {
     // Próximo de compra
     lines = [
-      `📊 MVRV em ${value} — região interessante para compra!`,
+      `📊 MVRV em ${value} — região historicamente favorável para acumulação`,
       'Estamos próximos da região onde o preço se aproxima do custo médio dos holders.',
-      'Abaixo de 1.0 = zona de compra histórica. O mercado está perto desse patamar.'
+      'Abaixo de 1.0 = zona histórica de acumulação. O mercado está perto desse patamar.'
     ];
   } else if (currentMVRV < 2.0) {
     // Neutro
@@ -104,7 +104,7 @@ function generateTweetText(currentMVRV: number, previousMVRV?: number): string {
       `📊 MVRV em ${value} — neutro.`,
       `O lucro médio não realizado dos holders de Bitcoin está em +${pctAbs}%.`,
       'Níveis moderados, o mercado opera dentro da normalidade histórica.',
-      'MVRV < 1.0 = bom momento de compra | > 3.0 = melhor zona de venda.'
+      'MVRV < 1.0 = região histórica de acumulação | > 3.0 = região historicamente associada a topos.'
     ];
   } else if (currentMVRV < 2.5) {
     // Aquecendo
@@ -116,7 +116,7 @@ function generateTweetText(currentMVRV: number, previousMVRV?: number): string {
   } else if (currentMVRV < 3.0) {
     // Atenção
     lines = [
-      `📊 MVRV em ${value} — atenção! ⚠️`,
+      `📊 MVRV em ${value} — atenção ⚠️`,
       pick(
         `Estamos em níveis historicamente associados a topos de mercado. Holders com lucros elevados tendem a realizar.`,
         `Holders com +${pctAbs}% de lucro médio. O indicador se aproxima de níveis historicamente associados a topos.`
@@ -126,7 +126,7 @@ function generateTweetText(currentMVRV: number, previousMVRV?: number): string {
   } else {
     // Alerta máximo (3.0+)
     lines = [
-      `📊 MVRV em ${value} — alerta máximo!`,
+      `📊 MVRV em ${value} — alerta máximo`,
       pick(
         `O MVRV está em patamares que historicamente antecederam as maiores correções do Bitcoin. Holders com lucros extremos. Momento crítico de gestão de risco.`,
         `Holders com +${pctAbs}% de lucro médio não realizado. Estamos em níveis historicamente associados a topos de mercado.`

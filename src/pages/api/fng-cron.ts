@@ -79,7 +79,7 @@ function generateFngTweet(value: number, fngClass: FngClass): string {
   switch (fngClass) {
     case 'extreme_fear':
       lines = [
-        `📊 Fear & Greed em ${value} — Medo Extremo!`,
+        `📊 Fear & Greed em ${value} — Medo Extremo`,
         'Historicamente, momentos assim se provaram grandes zonas de acumulação do Bitcoin.',
         'Quando todos têm medo, poucos aproveitam. 👀',
       ];
@@ -101,7 +101,7 @@ function generateFngTweet(value: number, fngClass: FngClass): string {
 
     case 'extreme_greed':
       lines = [
-        `📊 Fear & Greed em ${value} — Ganância Extrema! ⚠️`,
+        `📊 Fear & Greed em ${value} — Ganância Extrema ⚠️`,
         'Euforia no mercado. Historicamente, níveis assim antecederam correções significativas.',
         'Cautela. Quando todos estão gananciosos, o risco aumenta.',
       ];
